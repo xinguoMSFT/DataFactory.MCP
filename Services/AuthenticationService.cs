@@ -3,7 +3,6 @@ using DataFactory.MCP.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Client;
-using MsalAuthResult = Microsoft.Identity.Client.AuthenticationResult;
 
 namespace DataFactory.MCP.Services;
 
@@ -16,7 +15,6 @@ public class AuthenticationService : IAuthenticationService
     private readonly AzureAdConfiguration _azureAdConfig;
     private McpAuthenticationResult? _currentAuth;
     private IPublicClientApplication? _publicClientApp;
-    private IConfidentialClientApplication? _confidentialClientApp;
 
     public AuthenticationService(
         ILogger<AuthenticationService> logger,
@@ -37,16 +35,6 @@ public class AuthenticationService : IAuthenticationService
                 .WithAuthority(_azureAdConfig.Authority)
                 .WithRedirectUri(_azureAdConfig.RedirectUri)
                 .Build();
-
-            // Initialize confidential client for service principal authentication
-            if (!string.IsNullOrEmpty(_azureAdConfig.ClientSecret))
-            {
-                _confidentialClientApp = ConfidentialClientApplicationBuilder
-                    .Create(_azureAdConfig.ClientId)
-                    .WithClientSecret(_azureAdConfig.ClientSecret)
-                    .WithAuthority(_azureAdConfig.Authority)
-                    .Build();
-            }
 
             _logger.LogInformation("Azure AD client applications initialized successfully");
         }
