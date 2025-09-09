@@ -1,0 +1,75 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using DataFactory.MCP.Abstractions.Interfaces;
+using DataFactory.MCP.Services;
+using DataFactory.MCP.Tools;
+using DataFactory.MCP.Models;
+
+namespace DataFactory.MCP.Tests.Infrastructure;
+
+/// <summary>
+/// Test fixture that provides a configured dependency injection container
+/// for integration testing without mocking
+/// </summary>
+public class McpTestFixture : IDisposable
+{
+    public IServiceProvider ServiceProvider { get; private set; }
+    private readonly IHost _host;
+
+    public McpTestFixture()
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.test.json", optional: true)
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AzureAd:ClientId"] = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID") ?? "#{AZURE_CLIENT_ID}#",
+                ["AzureAd:TenantId"] = Environment.GetEnvironmentVariable("AZURE_TENANT_ID") ?? "#{AZURE_TENANT_ID}#",
+                ["AzureAd:Instance"] = "https://login.microsoftonline.com/",
+                ["AzureAd:ClientSecret"] = Environment.GetEnvironmentVariable("AZURE_CLIENT_SECRET") ?? "#{AZURE_CLIENT_SECRET}#"
+            })
+            .AddEnvironmentVariables()
+            .Build();
+
+        _host = Host.CreateDefaultBuilder()
+            .ConfigureAppConfiguration(config =>
+            {
+                config.AddConfiguration(configuration);
+            })
+            .ConfigureServices((context, services) =>
+            {
+                // Configure logging
+                services.AddLogging(builder => builder.AddConsole());
+
+                // Configure HTTP client
+                services.AddHttpClient();
+
+                // Configure Azure AD settings
+                services.Configure<AzureAdConfiguration>(configuration.GetSection("AzureAd"));
+
+                // Register services
+                services.AddScoped<IAuthenticationService, AuthenticationService>();
+                services.AddScoped<IFabricGatewayService, FabricGatewayService>();
+
+                // Register tools
+                services.AddScoped<AuthenticationTool>();
+                services.AddScoped<GatewayTool>();
+            })
+            .Build();
+
+        ServiceProvider = _host.Services;
+    }
+
+    public T GetService<T>() where T : notnull
+    {
+        return ServiceProvider.GetRequiredService<T>();
+    }
+
+    public void Dispose()
+    {
+        _host?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+}
