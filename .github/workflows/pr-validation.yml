@@ -23,7 +23,7 @@ concurrency:
 jobs:
   pr-integration-tests:
     name: 🧪 Integration Tests
-    runs-on: "windows-latest"
+    runs-on: ubuntu-latest
 
     # Skip draft PRs unless explicitly requested
     if: github.event.pull_request.draft == false || contains(github.event.pull_request.labels.*.name, 'test-draft')
@@ -47,6 +47,10 @@ jobs:
       - name: 🔨 Build Main Project
         run: dotnet build --no-restore --configuration Release
         working-directory: ./DataFactory.MCP
+
+      - name: 📦 Restore Dependencies Tests
+        run: dotnet restore
+        working-directory: ./DataFactory.MCP.Tests
 
       - name: 🔨 Build Test Project
         run: dotnet build --no-restore --configuration Release
