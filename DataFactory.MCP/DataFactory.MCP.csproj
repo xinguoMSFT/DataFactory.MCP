@@ -21,8 +21,8 @@
 
   <!-- Include additional files for browsing the MCP server. -->
   <ItemGroup>
-    <None Include=".mcp\server.json" Pack="true" PackagePath="/.mcp/" />
-    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="..\.mcp\server.json" Pack="true" PackagePath="/.mcp/" />
+    <None Include="..\README.md" Pack="true" PackagePath="/" />
     <None Include="appsettings.json" Pack="true" PackagePath="/content/" />
   </ItemGroup>
 
