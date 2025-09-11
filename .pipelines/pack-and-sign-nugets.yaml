@@ -1,5 +1,11 @@
-# pack-and-sign-all-nugets.yaml
-# Main pipeline to pack and sign all nuget packages
+#################################################################################
+#                               OneBranch Pipelines                             #
+# Pack and Sign DataFactory.MCP NuGet Packages                                  #
+# Documentation:  https://aka.ms/obpipelines                                    #
+# Yaml Schema:    https://aka.ms/obpipelines/yaml/schema                        #
+# Retail Tasks:   https://aka.ms/obpipelines/tasks                              #
+# Support:        https://aka.ms/onebranchsup                                   #
+#################################################################################
 
 trigger:
   branches:
@@ -19,82 +25,129 @@ pr:
     include:
       - DataFactory.MCP/*
 
+parameters:
+  - name: "debug"
+    displayName: "Enable debug output"
+    type: boolean
+    default: false
+
 variables:
+  CDP_DEFINITION_BUILD_COUNT: $[counter('', 0)] # needed for onebranch.pipeline.version task
+  system.debug: ${{ parameters.debug }}
+  ENABLE_PRS_DELAYSIGN: 1
   BuildConfiguration: "Release"
   DataFactorySourceDir: ""
-  NugetPackagesWildcard: '$(Build.ArtifactStagingDirectory)\packages\*.nupkg'
-  ArtifactPublishPath: '$(Build.ArtifactStagingDirectory)\packages'
+  REPOROOT: $(Build.SourcesDirectory)
+  OUTPUTROOT: $(REPOROOT)\out
+  WindowsContainerImage: "onebranch.azurecr.io/windows/ltsc2022/vse2022:latest"
 
-jobs:
-  - job: PackAndSign
-    displayName: "Pack and Sign NuGet Packages"
-    pool:
-      vmImage: "windows-latest"
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: OneBranch.Pipelines/GovernedTemplates
+      ref: refs/heads/main
 
-    steps:
-      # Setup .NET
-      - task: UseDotNet@2
-        displayName: "Install .NET SDK"
-        inputs:
-          packageType: "sdk"
-          version: "10.0.x"
-          includePreviewVersions: true
+extends:
+  template: v2/OneBranch.Official.CrossPlat.yml@templates
+  parameters:
+    featureFlags:
+      WindowsHostVersion: "1ESWindows2022"
 
-      # Restore packages
-      - task: DotNetCoreCLI@2
-        displayName: "Restore packages"
-        inputs:
-          command: "restore"
-          projects: '$(Build.SourcesDirectory)\$(DataFactorySourceDir)DataFactory.MCP\DataFactory.MCP.csproj'
+    globalSdl:
+      tsa:
+        enabled: true
+      credscan:
+        enabled: true
+      policheck:
+        enabled: true
+        break: false
+      armory:
+        enabled: true
+        break: true
+      binskim:
+        enabled: true
+        break: true
 
-      # Build the project
-      - task: DotNetCoreCLI@2
-        displayName: "Build project"
-        inputs:
-          command: "build"
-          projects: '$(Build.SourcesDirectory)\$(DataFactorySourceDir)DataFactory.MCP\DataFactory.MCP.csproj'
-          arguments: "--configuration $(BuildConfiguration) --no-restore"
+    stages:
+      - stage: build
+        jobs:
+          - job: main
+            pool:
+              type: windows
 
-      # Sign binary (if using OneBranch)
-      - task: onebranch.pipeline.signing@1
-        displayName: "Sign DataFactory.MCP binary with OneBranch"
-        inputs:
-          command: "sign"
-          signing_profile: "external_distribution"
-          files_to_sign: '**\bin\**\DataFactory.MCP.dll'
-          search_root: '$(Build.SourcesDirectory)\$(DataFactorySourceDir)DataFactory.MCP'
+            variables:
+              ob_outputDirectory: '$(REPOROOT)\out'
+              ob_sdl_binskim_break: true
+              ob_symbolsPublishing_enabled: true
+              ob_nugetPublishing_enabled: true
 
-      # Pack the project
-      - task: DotNetCoreCLI@2
-        displayName: "Pack Microsoft.DataFactory.MCP"
-        inputs:
-          command: "pack"
-          packagesToPack: '$(Build.SourcesDirectory)\$(DataFactorySourceDir)DataFactory.MCP\DataFactory.MCP.csproj'
-          configuration: "$(BuildConfiguration)"
-          outputDir: '$(Build.ArtifactStagingDirectory)\packages'
-          nobuild: true
-          includeSymbols: true
-          verbosityPack: "Normal"
+            steps:
+            steps:
+              # Setup .NET
+              - task: UseDotNet@2
+                displayName: "Install .NET SDK"
+                inputs:
+                  packageType: "sdk"
+                  version: "10.0.x"
+                  includePreviewVersions: true
 
-      # Sign all final nuget packages in the staging directory
-      - task: onebranch.pipeline.signing@1
-        displayName: "Sign Packages with OneBranch"
-        inputs:
-          command: "sign"
-          signing_profile: "CP-401405"
-          files_to_sign: "*nupkg"
-          search_root: '$(Build.ArtifactStagingDirectory)\packages'
+              # Restore packages
+              - task: DotNetCoreCLI@2
+                displayName: "Restore packages"
+                inputs:
+                  command: "restore"
+                  projects: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
 
-      - task: CmdLine@2
-        displayName: "Verify packages are signed"
-        inputs:
-          script: "dotnet nuget verify $(NugetPackagesWildcard)"
-        continueOnError: true
+              # Build the project
+              - task: DotNetCoreCLI@2
+                displayName: "Build project"
+                inputs:
+                  command: "build"
+                  projects: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
+                  arguments: "--configuration $(BuildConfiguration) --no-restore --output $(OUTPUTROOT)"
 
-      # Publish the packages as artifacts
-      - task: PublishBuildArtifacts@1
-        displayName: "Publish NuGet packages"
-        inputs:
-          PathtoPublish: "$(ArtifactPublishPath)"
-          ArtifactName: "nuget-packages"
-          publishLocation: "Container"
+              # Sign binary files with OneBranch
+              - task: onebranch.pipeline.signing@1
+                displayName: "Sign DataFactory.MCP binary"
+                inputs:
+                  command: "sign"
+                  signing_profile: "external_distribution"
+                  files_to_sign: '**\DataFactory.MCP.dll'
+                  search_root: '$(OUTPUTROOT)'
+
+              # Pack the project
+              - task: DotNetCoreCLI@2
+                displayName: "Pack Microsoft.DataFactory.MCP"
+                inputs:
+                  command: "pack"
+                  packagesToPack: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
+                  configuration: "$(BuildConfiguration)"
+                  outputDir: '$(OUTPUTROOT)'
+                  nobuild: true
+                  includeSymbols: true
+                  verbosityPack: "Normal"
+
+              # Sign NuGet packages with OneBranch
+              - task: onebranch.pipeline.signing@1
+                displayName: "Sign NuGet packages"
+                inputs:
+                  command: "sign"
+                  signing_profile: "CP-401405"
+                  files_to_sign: "*.nupkg"
+                  search_root: '$(OUTPUTROOT)'
+
+              # Verify packages are signed
+              - task: CmdLine@2
+                displayName: "Verify packages are signed"
+                inputs:
+                  script: "dotnet nuget verify $(OUTPUTROOT)\\*.nupkg"
+                continueOnError: true
+
+              # List created packages for verification
+              - task: CmdLine@2
+                displayName: "List created packages"
+                inputs:
+                  script: 'dir "$(OUTPUTROOT)" *.nupkg /s'
+                continueOnError: true
+                publishLocation: "Container"
