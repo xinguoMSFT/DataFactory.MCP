@@ -81,6 +81,10 @@ extends:
               ob_sdl_binskim_break: true
               ob_symbolsPublishing_enabled: true
               ob_nugetPublishing_enabled: true
+              # Force NuGet to use only our config
+              NUGET_PACKAGES: '$(Agent.TempDirectory)\.nuget\packages'
+              DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+              DOTNET_CLI_TELEMETRY_OPTOUT: "true"
 
             steps:
               # Setup .NET
@@ -91,52 +95,70 @@ extends:
                   version: "10.0.x"
                   includePreviewVersions: true
 
-              # Restore packages
-              - task: DotNetCoreCLI@2
+              # Restore packages using MSBuild (exactly like OneBranch.Official.yml)
+              - task: MSBuild@1
                 displayName: "Restore packages"
                 inputs:
-                  command: "restore"
-                  projects: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
-                  arguments: '--configfile $(Build.SourcesDirectory)\nuget.config --source https://msazure.pkgs.visualstudio.com/_packaging/Gateway-MetadataService-Temp/nuget/v3/index.json --verbosity normal --no-cache'
-                retryCountOnTaskFailure: 3
+                  solution: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
+                  msbuildLocationMethod: "version"
+                  msbuildVersion: "latest"
+                  platform: "Any CPU"
+                  configuration: "$(BuildConfiguration)"
+                  msbuildArguments: '/t:Restore /p:RestoreConfigFile=$(Build.SourcesDirectory)\nuget.config'
+                  clean: true
+                  maximumCpuCount: true
+                  logProjectEvents: true
 
-              # Build the project
-              - task: DotNetCoreCLI@2
+              # Build the project using MSBuild
+              - task: MSBuild@1
                 displayName: "Build project"
                 inputs:
-                  command: "build"
-                  projects: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
-                  arguments: "--configuration $(BuildConfiguration) --no-restore --output $(OUTPUTROOT)"
+                  solution: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
+                  msbuildLocationMethod: "version"
+                  msbuildVersion: "latest"
+                  platform: "Any CPU"
+                  configuration: "$(BuildConfiguration)"
+                  msbuildArguments: "/v:n /nr:false /p:build_all_project_references=0"
+                  clean: false
+                  maximumCpuCount: true
+                  logProjectEvents: true
 
-              # Sign binary files with OneBranch
+              # Sign binary files with OneBranch (exactly like OneBranch.Official.yml)
               - task: onebranch.pipeline.signing@1
-                displayName: "Sign DataFactory.MCP binary"
+                displayName: "Sign binary files"
                 inputs:
                   command: "sign"
                   signing_profile: "external_distribution"
-                  files_to_sign: '**\DataFactory.MCP.dll'
-                  search_root: "$(OUTPUTROOT)"
+                  files_to_sign: |
+                    **/*.exe;
+                    **/*.dll;
+                    **/*.ps1;
+                    **/*.psm1;
+                    **/*.psd1;
+                  search_root: '$(Build.SourcesDirectory)\DataFactory.MCP'
 
-              # Pack the project
-              - task: DotNetCoreCLI@2
-                displayName: "Pack Microsoft.DataFactory.MCP"
+              # Pack the project using MSBuild (like OneBranch.Official.yml)
+              - task: MSBuild@1
+                displayName: "Build NuGet Packages"
                 inputs:
-                  command: "pack"
-                  packagesToPack: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
+                  solution: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
+                  msbuildLocationMethod: "version"
+                  msbuildVersion: "latest"
+                  platform: "Any CPU"
                   configuration: "$(BuildConfiguration)"
-                  outputDir: "$(OUTPUTROOT)"
-                  nobuild: true
-                  includeSymbols: true
-                  verbosityPack: "Normal"
+                  msbuildArguments: "/t:Pack /v:n /nr:false /p:build_all_project_references=0"
+                  clean: false
+                  maximumCpuCount: true
+                  logProjectEvents: true
 
-              # Sign NuGet packages with OneBranch
+              # Sign NuGet packages with OneBranch (exactly like OneBranch.Official.yml)
               - task: onebranch.pipeline.signing@1
-                displayName: "Sign NuGet packages"
+                displayName: "Sign NuGet Packages"
                 inputs:
                   command: "sign"
-                  signing_profile: "CP-401405"
-                  files_to_sign: "*.nupkg"
-                  search_root: "$(OUTPUTROOT)"
+                  signing_profile: "external_distribution"
+                  files_to_sign: "*.nupkg;"
+                  search_root: '$(Build.SourcesDirectory)\DataFactory.MCP\bin\$(BuildConfiguration)'
 
               # Verify packages are signed
               - task: CmdLine@2
