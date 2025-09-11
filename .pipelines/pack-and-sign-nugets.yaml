@@ -83,7 +83,6 @@ extends:
               ob_nugetPublishing_enabled: true
 
             steps:
-            steps:
               # Setup .NET
               - task: UseDotNet@2
                 displayName: "Install .NET SDK"
@@ -114,7 +113,7 @@ extends:
                   command: "sign"
                   signing_profile: "external_distribution"
                   files_to_sign: '**\DataFactory.MCP.dll'
-                  search_root: '$(OUTPUTROOT)'
+                  search_root: "$(OUTPUTROOT)"
 
               # Pack the project
               - task: DotNetCoreCLI@2
@@ -123,7 +122,7 @@ extends:
                   command: "pack"
                   packagesToPack: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
                   configuration: "$(BuildConfiguration)"
-                  outputDir: '$(OUTPUTROOT)'
+                  outputDir: "$(OUTPUTROOT)"
                   nobuild: true
                   includeSymbols: true
                   verbosityPack: "Normal"
@@ -135,7 +134,7 @@ extends:
                   command: "sign"
                   signing_profile: "CP-401405"
                   files_to_sign: "*.nupkg"
-                  search_root: '$(OUTPUTROOT)'
+                  search_root: "$(OUTPUTROOT)"
 
               # Verify packages are signed
               - task: CmdLine@2
