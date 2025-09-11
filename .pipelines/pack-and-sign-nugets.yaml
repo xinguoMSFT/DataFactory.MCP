@@ -97,7 +97,7 @@ extends:
                 inputs:
                   command: "restore"
                   projects: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
-                  arguments: '--configfile $(Build.SourcesDirectory)\nuget.config --verbosity normal'
+                  arguments: '--configfile $(Build.SourcesDirectory)\nuget.config --source https://msazure.pkgs.visualstudio.com/_packaging/Gateway-MetadataService-Temp/nuget/v3/index.json --verbosity normal --no-cache'
                 retryCountOnTaskFailure: 3
 
               # Build the project
