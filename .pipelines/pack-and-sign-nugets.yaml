@@ -136,7 +136,7 @@ extends:
                     !**/Microsoft.Extensions.*.dll;
                     !**/Microsoft.Identity.Client.dll;
                     !**/System.*.dll;
-                  search_root: "$(Build.SourcesDirectory)/DataFactory.MCP/bin/$(BuildConfiguration)/net10.0"
+                  search_root: "$(Build.SourcesDirectory)\\DataFactory.MCP\\bin\\$(BuildConfiguration)\\net10.0"
 
               # Sign 3rd party dlls (following OneBranch.Official.yml pattern)
               - task: onebranch.pipeline.signing@1
@@ -147,7 +147,27 @@ extends:
                   files_to_sign: |
                     **/ModelContextProtocol.dll;
                     **/ModelContextProtocol.Core.dll;
-                  search_root: "$(Build.SourcesDirectory)/DataFactory.MCP/bin/$(BuildConfiguration)/net10.0"
+                  search_root: "$(Build.SourcesDirectory)\\DataFactory.MCP\\bin\\$(BuildConfiguration)\\net10.0"
+
+              # Verify signatures after signing (pre-pack)
+              - task: PowerShell@2
+                displayName: "Verify signed binaries (pre-pack)"
+                inputs:
+                  targetType: inline
+                  script: |
+                    $root = "$(Build.SourcesDirectory)\DataFactory.MCP\bin\$(BuildConfiguration)\net10.0"
+                    Write-Host "Checking signatures under $root"
+                    $targets = Get-ChildItem $root -Recurse -Filter *.dll | Where-Object { $_.Name -in @('DataFactory.MCP.dll','ModelContextProtocol.dll','ModelContextProtocol.Core.dll') }
+                    if (-not $targets) { Write-Error "No target assemblies found to verify." }
+                    $unsigned = @()
+                    foreach ($f in $targets) {
+                      $sig = Get-AuthenticodeSignature $f.FullName
+                      Write-Host ("{0} => Status={1}; Subject={2}" -f $f.Name, $sig.Status, ($sig.SignerCertificate.Subject )))
+                      if ($sig.Status -ne 'Valid') { $unsigned += $f }
+                    }
+                    if ($unsigned.Count -gt 0) {
+                      Write-Warning "The following files are still unsigned prior to pack:"; $unsigned | ForEach-Object { Write-Warning $_.FullName }
+                    }
 
               # Pack the project using standard dotnet pack with nobuild to preserve signatures
               - task: DotNetCoreCLI@2
@@ -159,6 +179,55 @@ extends:
                   outputDir: "$(OUTPUTROOT)"
                   nobuild: true
                   includeSymbols: true
+
+              # Optional: Fallback post-pack signing if pre-pack signing failed (extract, sign, repack)
+              - ${{ if eq(variables['ENABLE_POST_PACK_SIGNING'], 'true') }}:
+                  - task: PowerShell@2
+                    displayName: "(Fallback) Extract packages for post-pack signing"
+                    inputs:
+                      targetType: inline
+                      script: |
+                        $out = "$(OUTPUTROOT)"
+                        $work = Join-Path $out "_extract"
+                        New-Item -ItemType Directory -Force -Path $work | Out-Null
+                        Get-ChildItem "$out" -Filter *.nupkg | ForEach-Object {
+                          $name = $_.BaseName
+                          $dest = Join-Path $work $name
+                          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+                          Expand-Archive -Path $_.FullName -DestinationPath $dest -Force
+                        }
+                        Write-Host "Extracted packages to $work"
+                  - task: onebranch.pipeline.signing@1
+                    displayName: "(Fallback) Sign extracted binaries"
+                    inputs:
+                      command: sign
+                      signing_profile: external_distribution
+                      files_to_sign: |
+                        **/DataFactory.MCP.dll;
+                      search_root: "$(OUTPUTROOT)/_extract"
+                  - task: onebranch.pipeline.signing@1
+                    displayName: "(Fallback) Sign extracted 3rd party binaries"
+                    inputs:
+                      command: sign
+                      signing_profile: 135020002
+                      files_to_sign: |
+                        **/ModelContextProtocol.dll;
+                        **/ModelContextProtocol.Core.dll;
+                      search_root: "$(OUTPUTROOT)/_extract"
+                  - task: PowerShell@2
+                    displayName: "(Fallback) Repack signed packages"
+                    inputs:
+                      targetType: inline
+                      script: |
+                        $out = "$(OUTPUTROOT)"
+                        $work = Join-Path $out "_extract"
+                        Get-ChildItem $work -Directory | ForEach-Object {
+                          $pkgName = $_.Name + '.nupkg'
+                          $dest = Join-Path $out $pkgName
+                          Remove-Item $dest -ErrorAction SilentlyContinue
+                          Compress-Archive -Path (Join-Path $_ '*') -DestinationPath $dest -Force
+                          Write-Host "Repacked $dest"
+                        }
 
               # Sign NuGet packages (following OneBranch.Official.yml pattern)
               - task: onebranch.pipeline.signing@1
