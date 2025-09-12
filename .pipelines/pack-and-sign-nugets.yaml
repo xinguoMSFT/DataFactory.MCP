@@ -183,54 +183,61 @@ extends:
                   nobuild: true
                   includeSymbols: true
 
-              # Optional: Fallback post-pack signing if pre-pack signing failed (extract, sign, repack)
-              - ${{ if eq(variables['ENABLE_POST_PACK_SIGNING'], 'true') }}:
-                  - task: PowerShell@2
-                    displayName: "(Fallback) Extract packages for post-pack signing"
-                    inputs:
-                      targetType: inline
-                      script: |
-                        $out = "$(OUTPUTROOT)"
-                        $work = Join-Path $out "_extract"
-                        New-Item -ItemType Directory -Force -Path $work | Out-Null
-                        Get-ChildItem "$out" -Filter *.nupkg | ForEach-Object {
-                          $name = $_.BaseName
-                          $dest = Join-Path $work $name
-                          New-Item -ItemType Directory -Force -Path $dest | Out-Null
-                          Expand-Archive -Path $_.FullName -DestinationPath $dest -Force
-                        }
-                        Write-Host "Extracted packages to $work"
-                  - task: onebranch.pipeline.signing@1
-                    displayName: "(Fallback) Sign extracted binaries"
-                    inputs:
-                      command: sign
-                      signing_profile: external_distribution
-                      files_to_sign: |
-                        **/DataFactory.MCP.dll;
-                      search_root: "$(OUTPUTROOT)/_extract"
-                  - task: onebranch.pipeline.signing@1
-                    displayName: "(Fallback) Sign extracted 3rd party binaries"
-                    inputs:
-                      command: sign
-                      signing_profile: 135020002
-                      files_to_sign: |
-                        **/ModelContextProtocol.dll;
-                        **/ModelContextProtocol.Core.dll;
-                      search_root: "$(OUTPUTROOT)/_extract"
-                  - task: PowerShell@2
-                    displayName: "(Fallback) Repack signed packages"
-                    inputs:
-                      targetType: inline
-                      script: |
-                        $out = "$(OUTPUTROOT)"
-                        $work = Join-Path $out "_extract"
-                        Get-ChildItem $work -Directory | ForEach-Object {
-                          $pkgName = $_.Name + '.nupkg'
-                          $dest = Join-Path $out $pkgName
-                          Remove-Item $dest -ErrorAction SilentlyContinue
-                          Compress-Archive -Path (Join-Path $_ '*') -DestinationPath $dest -Force
-                          Write-Host "Repacked $dest"
-                        }
+              # Post-pack extraction, signing, and repack (ensures actual packaged tool binaries are signed)
+              - task: PowerShell@2
+                displayName: "Extract packages for post-pack signing"
+                inputs:
+                  targetType: inline
+                  script: |
+                    $out = "$(OUTPUTROOT)"
+                    $work = Join-Path $out "_postpack"
+                    if (Test-Path $work) { Remove-Item $work -Recurse -Force }
+                    New-Item -ItemType Directory -Force -Path $work | Out-Null
+                    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+                    Get-ChildItem "$out" -Filter *.nupkg | ForEach-Object {
+                      $name = $_.BaseName
+                      $dest = Join-Path $work $name
+                      New-Item -ItemType Directory -Force -Path $dest | Out-Null
+                      try {
+                        [System.IO.Compression.ZipFile]::ExtractToDirectory($_.FullName, $dest)
+                        Write-Host "Extracted $($_.Name) to $dest"
+                      } catch {
+                        Write-Error "Failed to extract $($_.Name): $_"
+                      }
+                    }
+              - task: onebranch.pipeline.signing@1
+                displayName: "Sign extracted binaries (post-pack)"
+                inputs:
+                  command: sign
+                  signing_profile: external_distribution
+                  files_to_sign: |
+                    **/DataFactory.MCP.dll;
+                  search_root: "$(OUTPUTROOT)/_postpack"
+              - task: onebranch.pipeline.signing@1
+                displayName: "Sign extracted 3rd party binaries (post-pack)"
+                inputs:
+                  command: sign
+                  signing_profile: 135020002
+                  files_to_sign: |
+                    **/ModelContextProtocol.dll;
+                    **/ModelContextProtocol.Core.dll;
+                  search_root: "$(OUTPUTROOT)/_postpack"
+              - task: PowerShell@2
+                displayName: "Repack signed packages"
+                inputs:
+                  targetType: inline
+                  script: |
+                    $out = "$(OUTPUTROOT)"
+                    $work = Join-Path $out "_postpack"
+                    if (-not (Test-Path $work)) { Write-Error "Extraction folder missing: $work"; exit 1 }
+                    Get-ChildItem $work -Directory | ForEach-Object {
+                      $pkgName = $_.Name + '.nupkg'
+                      $dest = Join-Path $out $pkgName
+                      Remove-Item $dest -ErrorAction SilentlyContinue
+                      Compress-Archive -Path (Join-Path $_ '*') -DestinationPath $dest -Force
+                      Write-Host "Repacked $dest"
+                    }
+                    Write-Host "Repacked all packages after post-pack signing."
 
               # Sign NuGet packages (following OneBranch.Official.yml pattern)
               - task: onebranch.pipeline.signing@1
@@ -254,7 +261,8 @@ extends:
                     $nugetVerifyFailures = @()
                     foreach ($pkg in $pkgs) {
                       Write-Host "Running 'dotnet nuget verify' on $($pkg.Name)" -ForegroundColor Cyan
-                      $verify = & dotnet nuget verify --signatures --all $pkg.FullName 2>&1
+                      # Use --all only (the earlier --signatures switch is nuget.exe only and caused failures)
+                      $verify = & dotnet nuget verify --all $pkg.FullName 2>&1
                       $verify | ForEach-Object { Write-Host $_ }
                       if ($LASTEXITCODE -ne 0) { $nugetVerifyFailures += $pkg }
                     }
@@ -268,10 +276,15 @@ extends:
                     if (Test-Path $tempRoot) { Remove-Item $tempRoot -Recurse -Force }
                     New-Item -ItemType Directory -Path $tempRoot | Out-Null
                     $targetNames = @('DataFactory.MCP.dll','ModelContextProtocol.dll','ModelContextProtocol.Core.dll')
+                    Add-Type -AssemblyName System.IO.Compression.FileSystem
                     foreach ($pkg in $pkgs) {
                       $extractDir = Join-Path $tempRoot ([IO.Path]::GetFileNameWithoutExtension($pkg.Name))
                       New-Item -ItemType Directory -Path $extractDir | Out-Null
-                      Expand-Archive -Path $pkg.FullName -DestinationPath $extractDir -Force
+                      try {
+                        [System.IO.Compression.ZipFile]::ExtractToDirectory($pkg.FullName, $extractDir)
+                      } catch {
+                        Write-Error "Failed to extract $($pkg.Name): $_"; continue
+                      }
                       # Tool packages put binaries under tools/<tfm>/any (sometimes RID folder). Search broadly but narrow by names.
                       $candidates = Get-ChildItem $extractDir -Recurse -Include $targetNames -ErrorAction SilentlyContinue | Where-Object { $_.Extension -eq '.dll' }
                       if (-not $candidates) {
