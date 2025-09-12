@@ -38,7 +38,7 @@ variables:
   BuildConfiguration: "Release"
   DataFactorySourceDir: ""
   REPOROOT: $(Build.SourcesDirectory)
-  OUTPUTROOT: $(REPOROOT)\out
+  OUTPUTROOT: $(Build.SourcesDirectory)/out
   WindowsContainerImage: "onebranch.azurecr.io/windows/ltsc2022/vse2022:latest"
 
 resources:
@@ -69,9 +69,9 @@ extends:
         enabled: true
         break: true
       suppression:
-        suppressionFile: $(Build.SourcesDirectory)\.gdn\build.official.gdnsuppress
+        suppressionFile: $(Build.SourcesDirectory)/.gdn/build.official.gdnsuppress
       baseline:
-        baselineFile: $(Build.SourcesDirectory)\.gdn\build.official.gdnbaselines
+        baselineFile: $(Build.SourcesDirectory)/.gdn/build.official.gdnbaselines
 
     stages:
       - stage: build
@@ -81,12 +81,12 @@ extends:
               type: windows
 
             variables:
-              ob_outputDirectory: '$(REPOROOT)\out'
+              ob_outputDirectory: "$(Build.SourcesDirectory)/out"
               ob_sdl_binskim_break: true
               ob_symbolsPublishing_enabled: true
               ob_nugetPublishing_enabled: true
               # Force NuGet to use only our config
-              NUGET_PACKAGES: '$(Agent.TempDirectory)\.nuget\packages'
+              NUGET_PACKAGES: "$(Agent.TempDirectory)/.nuget/packages"
               DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
               DOTNET_CLI_TELEMETRY_OPTOUT: "true"
 
@@ -104,9 +104,9 @@ extends:
                 displayName: "Restore packages"
                 inputs:
                   command: "restore"
-                  projects: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
+                  projects: "$(Build.SourcesDirectory)/DataFactory.MCP/DataFactory.MCP.csproj"
                   feedsToUse: "config"
-                  nugetConfigPath: '$(Build.SourcesDirectory)\nuget.config'
+                  nugetConfigPath: "$(Build.SourcesDirectory)/nuget.config"
                   verbosityRestore: "Normal"
                   noCache: true
                 retryCountOnTaskFailure: 3
@@ -116,8 +116,8 @@ extends:
                 displayName: "Build project"
                 inputs:
                   command: "build"
-                  projects: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
-                  arguments: "--configuration $(BuildConfiguration) --no-restore --output $(OUTPUTROOT)\bin"
+                  projects: "$(Build.SourcesDirectory)/DataFactory.MCP/DataFactory.MCP.csproj"
+                  arguments: "--configuration $(BuildConfiguration) --no-restore --output $(OUTPUTROOT)"
 
               # Sign binary files (following OneBranch.Official.yml pattern)
               - task: onebranch.pipeline.signing@1
@@ -136,7 +136,7 @@ extends:
                     !**/Microsoft.Extensions.*.dll;
                     !**/Microsoft.Identity.Client.dll;
                     !**/System.*.dll;
-                  search_root: '$(OUTPUTROOT)\bin'
+                  search_root: "$(OUTPUTROOT)"
 
               # Sign 3rd party dlls (following OneBranch.Official.yml pattern)
               - task: onebranch.pipeline.signing@1
@@ -147,14 +147,14 @@ extends:
                   files_to_sign: |
                     **/ModelContextProtocol.dll;
                     **/ModelContextProtocol.Core.dll;
-                  search_root: '$(OUTPUTROOT)\bin'
+                  search_root: "$(OUTPUTROOT)"
 
               # Pack the project using standard dotnet pack (to OUTPUTROOT like OneBranch.Official.yml)
               - task: DotNetCoreCLI@2
                 displayName: "Pack NuGet packages"
                 inputs:
                   command: "pack"
-                  packagesToPack: '$(Build.SourcesDirectory)\DataFactory.MCP\DataFactory.MCP.csproj'
+                  packagesToPack: "$(Build.SourcesDirectory)/DataFactory.MCP/DataFactory.MCP.csproj"
                   configuration: "$(BuildConfiguration)"
                   outputDir: "$(OUTPUTROOT)"
                   nobuild: true
@@ -173,7 +173,7 @@ extends:
               - task: CmdLine@2
                 displayName: "Verify packages are signed"
                 inputs:
-                  script: 'dotnet nuget verify "$(OUTPUTROOT)\*.nupkg"'
+                  script: 'dotnet nuget verify "$(OUTPUTROOT)/*.nupkg"'
                 continueOnError: true
 
               # List created packages for verification
