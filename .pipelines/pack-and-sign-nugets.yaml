@@ -149,7 +149,7 @@ extends:
                     **/ModelContextProtocol.Core.dll;
                   search_root: "$(Build.SourcesDirectory)/DataFactory.MCP/bin/$(BuildConfiguration)/net10.0"
 
-              # Pack the project using standard dotnet pack (to OUTPUTROOT like OneBranch.Official.yml)
+              # Pack the project using standard dotnet pack with nobuild to preserve signatures
               - task: DotNetCoreCLI@2
                 displayName: "Pack NuGet packages"
                 inputs:
@@ -157,6 +157,7 @@ extends:
                   packagesToPack: "$(Build.SourcesDirectory)/DataFactory.MCP/DataFactory.MCP.csproj"
                   configuration: "$(BuildConfiguration)"
                   outputDir: "$(OUTPUTROOT)"
+                  nobuild: true
                   includeSymbols: true
 
               # Sign NuGet packages (following OneBranch.Official.yml pattern)
