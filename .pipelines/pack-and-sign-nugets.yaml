@@ -207,16 +207,11 @@ extends:
           - stage: Prod_DataFactory_MCP_NuGet_Gallery
             displayName: "Publish to NuGet.org"
             dependsOn: build
-            variables:
-              - name: ob_release_environment
-                value: Production
-              - name: ob_release_usedeploymentjob
-                value: true
-              - name: ob_deploymentjob_environment
-                value: DataFactory_MCP_NuGet_Gallery
             jobs:
               - job: publish_to_nuget
                 displayName: "Publish to NuGet.org"
+                pool:
+                  type: release
                 templateContext:
                   inputs:
                     - input: pipelineArtifact
