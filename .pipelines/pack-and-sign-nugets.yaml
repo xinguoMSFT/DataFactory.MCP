@@ -227,31 +227,25 @@ extends:
                         Write-Host "=== Debugging Package Location ===" -ForegroundColor Cyan
                         Write-Host "Pipeline.Workspace: $(Pipeline.Workspace)"
 
-                        # Check all available folders
-                        $folders = @("a", "b", "s", "TestResults")
-                        foreach ($folder in $folders) {
-                          $path = "$(Pipeline.Workspace)/$folder"
-                          Write-Host "=== Checking folder: $folder ===" -ForegroundColor Yellow
-                          if (Test-Path $path) {
-                            Write-Host "Contents of $folder folder:" -ForegroundColor Green
-                            Get-ChildItem $path -Recurse | Where-Object { $_.Name -like "*.nupkg" -or $_.PSIsContainer } | Select-Object FullName, Length | Format-Table -AutoSize
-                            
-                            # Look specifically for .nupkg files
-                            $packages = Get-ChildItem $path -Filter "*.nupkg" -Recurse
-                            if ($packages) {
-                              Write-Host "Found NuGet packages in $folder:" -ForegroundColor Green
-                              $packages | Select-Object FullName, Length | Format-Table -AutoSize
-                            }
+                        # Check the drop_build_main folder specifically
+                        $dropPath = "$(Pipeline.Workspace)/drop_build_main"
+                        Write-Host "=== Checking drop_build_main folder ===" -ForegroundColor Yellow
+                        if (Test-Path $dropPath) {
+                          Write-Host "Contents of drop_build_main folder:" -ForegroundColor Green
+                          Get-ChildItem $dropPath -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
+                          
+                          # Look specifically for .nupkg files
+                          $packages = Get-ChildItem $dropPath -Filter "*.nupkg" -Recurse
+                          if ($packages) {
+                            Write-Host "Found NuGet packages in drop_build_main:" -ForegroundColor Green
+                            $packages | Select-Object FullName, Length | Format-Table -AutoSize
                           } else {
-                            Write-Host "Folder $folder not found" -ForegroundColor Red
+                            Write-Host "No .nupkg files found in drop_build_main" -ForegroundColor Red
                           }
-                        }
-
-                        # Also check the specific build output directory
-                        $buildOut = "$(Pipeline.Workspace)/a/Microsoft.DataFactory.MCP"
-                        if (Test-Path $buildOut) {
-                          Write-Host "=== Build output directory found ===" -ForegroundColor Green
-                          Get-ChildItem $buildOut -Recurse | Where-Object { $_.Name -like "*.nupkg" } | Select-Object FullName | Format-Table -AutoSize
+                        } else {
+                          Write-Host "drop_build_main folder not found!" -ForegroundColor Red
+                          Write-Host "Available folders in Pipeline.Workspace:" -ForegroundColor Yellow
+                          Get-ChildItem "$(Pipeline.Workspace)" | Select-Object FullName | Format-Table -AutoSize
                         }
                   - task: NuGetCommand@2
                     displayName: "Publish to NuGet.org"
