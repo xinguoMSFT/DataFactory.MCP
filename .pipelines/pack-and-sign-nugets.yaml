@@ -226,7 +226,7 @@ extends:
                       script: |
                         Write-Host "=== Debugging Package Location ===" -ForegroundColor Cyan
                         Write-Host "Pipeline.Workspace: $(Pipeline.Workspace)"
-                        
+
                         # Check all available folders
                         $folders = @("a", "b", "s", "TestResults")
                         foreach ($folder in $folders) {
@@ -246,13 +246,14 @@ extends:
                             Write-Host "Folder $folder not found" -ForegroundColor Red
                           }
                         }
-                        
+
                         # Also check the specific build output directory
                         $buildOut = "$(Pipeline.Workspace)/a/Microsoft.DataFactory.MCP"
                         if (Test-Path $buildOut) {
                           Write-Host "=== Build output directory found ===" -ForegroundColor Green
                           Get-ChildItem $buildOut -Recurse | Where-Object { $_.Name -like "*.nupkg" } | Select-Object FullName | Format-Table -AutoSize
-                        }                  - task: NuGetCommand@2
+                        }
+                  - task: NuGetCommand@2
                     displayName: "Publish to NuGet.org"
                     inputs:
                       command: "push"
