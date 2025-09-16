@@ -6,8 +6,8 @@
 #   - debug: Enable debug output (default: false)                              #
 #   - publishToNuGet: Publish to NuGet.org (default: false)                    #
 #                                                                               #
-# Required Variables for NuGet publishing:                                     #
-#   - NUGET_API_KEY: API key for NuGet.org publishing                          #
+# Required Service Connections for NuGet publishing:                           #
+#   - "NuGet.org": Service connection (DataIntegration NuGet) configured for NuGet.org                 #
 #                                                                               #
 # Documentation:  https://aka.ms/obpipelines                                    #
 # Yaml Schema:    https://aka.ms/obpipelines/yaml/schema                        #
@@ -201,61 +201,12 @@ extends:
                     } else { Write-Host "Output directory not found: $out" }
                 continueOnError: true
 
-              - task: PowerShell@2
-                displayName: "Validate NuGet API Key"
-                condition: and(succeeded(), eq('${{ parameters.publishToNuGet }}', true))
-                inputs:
-                  targetType: inline
-                  script: |
-                    if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY)) {
-                        Write-Error "❌ NUGET_API_KEY variable is required for publishing to NuGet.org"
-                        Write-Host "Please set the NUGET_API_KEY variable in your pipeline variables." -ForegroundColor Yellow
-                        exit 1
-                    } else {
-                        Write-Host "✅ NuGet API key is configured" -ForegroundColor Green
-                    }
-                  pwsh: true
-                env:
-                  NUGET_API_KEY: $(NUGET_API_KEY)
-                continueOnError: false
-
-              - task: PowerShell@2
+              - task: NuGetCommand@2
                 displayName: "Publish to NuGet.org"
                 condition: and(succeeded(), eq('${{ parameters.publishToNuGet }}', true))
                 inputs:
-                  targetType: inline
-                  script: |
-                    Write-Host "🚀 Publishing packages to NuGet.org..." -ForegroundColor Cyan
-
-                    # Find the main package (exclude symbols packages)
-                    $packages = Get-ChildItem "$(OUTPUTROOT)" -Filter "Microsoft.DataFactory.MCP.*.nupkg" | Where-Object { $_.Name -notlike "*symbols*" }
-
-                    if ($packages.Count -eq 0) {
-                        Write-Error "No packages found to publish"
-                        exit 1
-                    }
-
-                    foreach ($package in $packages) {
-                        Write-Host "Publishing: $($package.Name)" -ForegroundColor Green
-                        
-                        # Use dotnet nuget push command
-                        $pushCmd = "dotnet nuget push `"$($package.FullName)`" --api-key `"$(NUGET_API_KEY)`" --source https://api.nuget.org/v3/index.json --skip-duplicate"
-                        
-                        Write-Host "Executing: dotnet nuget push $($package.Name) --source nuget.org" -ForegroundColor Yellow
-                        
-                        Invoke-Expression $pushCmd
-                        
-                        if ($LASTEXITCODE -eq 0) {
-                            Write-Host "✅ Successfully published $($package.Name)" -ForegroundColor Green
-                        } else {
-                            Write-Error "❌ Failed to publish $($package.Name)"
-                            exit 1
-                        }
-                    }
-
-                    Write-Host "🎉 All packages published successfully!" -ForegroundColor Green
-                  workingDirectory: "$(Build.SourcesDirectory)"
-                  pwsh: true
-                env:
-                  NUGET_API_KEY: $(NUGET_API_KEY)
-                continueOnError: false
+                  command: "push"
+                  packagesToPush: "$(OUTPUTROOT)/**/Microsoft.DataFactory.MCP.*.nupkg;!$(OUTPUTROOT)/**/*.symbols.nupkg"
+                  nuGetFeedType: "external"
+                  publishFeedCredentials: "NuGet.org"
+                  allowPackageConflicts: true
