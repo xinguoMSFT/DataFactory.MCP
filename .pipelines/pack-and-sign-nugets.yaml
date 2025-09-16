@@ -213,11 +213,11 @@ extends:
                 pool:
                   type: windows
                 variables:
-                  ob_outputDirectory: "$(Pipeline.Workspace)/drop"
+                  ob_outputDirectory: "$(Pipeline.Workspace)/drop_build_main"
                 templateContext:
                   inputs:
                     - input: pipelineArtifact
-                      artifactName: drop
+                      artifactName: drop_build_main
                 steps:
                   - task: PowerShell@2
                     displayName: "List available packages for debugging"
@@ -226,25 +226,37 @@ extends:
                       script: |
                         Write-Host "=== Debugging Package Location ===" -ForegroundColor Cyan
                         Write-Host "Pipeline.Workspace: $(Pipeline.Workspace)"
-                        Write-Host "Looking for packages in: $(Pipeline.Workspace)/drop"
-
-                        if (Test-Path "$(Pipeline.Workspace)/drop") {
-                          Write-Host "Contents of drop folder:" -ForegroundColor Green
-                          Get-ChildItem "$(Pipeline.Workspace)/drop" -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
-                          
-                          Write-Host "NuGet packages found:" -ForegroundColor Green
-                          Get-ChildItem "$(Pipeline.Workspace)/drop" -Filter "*.nupkg" -Recurse | Select-Object FullName | Format-Table -AutoSize
-                        } else {
-                          Write-Host "Drop folder not found!" -ForegroundColor Red
-                          Write-Host "Available folders in Pipeline.Workspace:" -ForegroundColor Yellow
-                          Get-ChildItem "$(Pipeline.Workspace)" | Select-Object FullName | Format-Table -AutoSize
+                        
+                        # Check all available folders
+                        $folders = @("a", "b", "s", "TestResults")
+                        foreach ($folder in $folders) {
+                          $path = "$(Pipeline.Workspace)/$folder"
+                          Write-Host "=== Checking folder: $folder ===" -ForegroundColor Yellow
+                          if (Test-Path $path) {
+                            Write-Host "Contents of $folder folder:" -ForegroundColor Green
+                            Get-ChildItem $path -Recurse | Where-Object { $_.Name -like "*.nupkg" -or $_.PSIsContainer } | Select-Object FullName, Length | Format-Table -AutoSize
+                            
+                            # Look specifically for .nupkg files
+                            $packages = Get-ChildItem $path -Filter "*.nupkg" -Recurse
+                            if ($packages) {
+                              Write-Host "Found NuGet packages in $folder:" -ForegroundColor Green
+                              $packages | Select-Object FullName, Length | Format-Table -AutoSize
+                            }
+                          } else {
+                            Write-Host "Folder $folder not found" -ForegroundColor Red
+                          }
                         }
-
-                  - task: NuGetCommand@2
+                        
+                        # Also check the specific build output directory
+                        $buildOut = "$(Pipeline.Workspace)/a/Microsoft.DataFactory.MCP"
+                        if (Test-Path $buildOut) {
+                          Write-Host "=== Build output directory found ===" -ForegroundColor Green
+                          Get-ChildItem $buildOut -Recurse | Where-Object { $_.Name -like "*.nupkg" } | Select-Object FullName | Format-Table -AutoSize
+                        }                  - task: NuGetCommand@2
                     displayName: "Publish to NuGet.org"
                     inputs:
                       command: "push"
-                      packagesToPush: "$(Pipeline.Workspace)/drop/**/*.nupkg"
+                      packagesToPush: "$(Pipeline.Workspace)/drop_build_main/Microsoft.DataFactory.MCP.*.nupkg;!$(Pipeline.Workspace)/drop_build_main/*.symbols.nupkg"
                       nuGetFeedType: "external"
                       publishFeedCredentials: "DataIntegration NuGet"
                       allowPackageConflicts: true
