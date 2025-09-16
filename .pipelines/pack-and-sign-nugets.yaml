@@ -202,7 +202,7 @@ extends:
                     } else { Write-Host "Output directory not found: $out" }
                 continueOnError: true
 
-      # Publishing stage - uses release pool for better network access
+      # Publishing stage - uses regular pool to avoid release stage restrictions
       - ${{ if eq(parameters.publishToNuGet, true) }}:
           - stage: publish_to_nuget_gallery
             displayName: "Publish to NuGet.org"
@@ -211,7 +211,7 @@ extends:
               - job: publish_to_nuget
                 displayName: "Publish to NuGet.org"
                 pool:
-                  type: release
+                  type: windows
                 templateContext:
                   inputs:
                     - input: pipelineArtifact
