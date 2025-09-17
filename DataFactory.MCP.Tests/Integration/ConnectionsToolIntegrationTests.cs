@@ -169,8 +169,20 @@ public class ConnectionsToolIntegrationTests : IClassFixture<McpTestFixture>
             return false;
         }
 
+        // If credentials are available, authentication must succeed - otherwise fail the test
         var result = await authTool.AuthenticateServicePrincipalAsync(clientId, clientSecret, tenantId);
-        return result.Contains("successfully") || result.Contains("completed successfully");
+        var success = result.Contains("successfully") || result.Contains("completed successfully");
+        
+        if (!success)
+        {
+            var errorMessage = $"Authentication failed with available credentials. " +
+                             $"Client ID: {clientId}, Tenant ID: {tenantId}, " +
+                             $"Error: {result}";
+            
+            Assert.Fail(errorMessage);
+        }
+        
+        return true;
     }
 
     [SkippableFact]
