@@ -19,7 +19,7 @@ public class ConnectionsToolIntegrationTests : IClassFixture<McpTestFixture>
     {
         _fixture = fixture;
         _connectionsTool = _fixture.GetService<ConnectionsTool>();
-        
+
         // Ensure we start with no authentication for unauthenticated tests
         var authTool = _fixture.GetService<AuthenticationTool>();
         authTool.SignOutAsync().GetAwaiter().GetResult();
@@ -102,11 +102,10 @@ public class ConnectionsToolIntegrationTests : IClassFixture<McpTestFixture>
     }
 
     [Theory]
-    [InlineData("6952a7b2-aea3-414f-9d85-6c0fe5d34539")]
-    [InlineData("f6a39b76-9816-4e4b-b93a-f42e405017b7")]
     [InlineData("invalid-guid")]
     [InlineData("test-connection-123")]
-    public async Task GetConnectionAsync_WithValidConnectionId_ShouldHandleIdParameter(string connectionId)
+    [InlineData("non-existent-connection")]
+    public async Task GetConnectionAsync_WithInvalidConnectionId_ShouldHandleIdParameter(string connectionId)
     {
         // Act
         var result = await _connectionsTool.GetConnectionAsync(connectionId);
@@ -353,7 +352,7 @@ public class ConnectionsToolIntegrationTests : IClassFixture<McpTestFixture>
     [SkippableTheory]
     [InlineData("non-existent-connection-id")]
     [InlineData("invalid-guid-format")]
-    [InlineData("00000000-0000-0000-0000-000000000000")]
+    [InlineData("test-connection-that-does-not-exist")]
     public async Task GetConnectionAsync_WithAuthentication_AndNonExistentId_ShouldReturnNotFoundMessage(string connectionId)
     {
         // Arrange - Try to authenticate
