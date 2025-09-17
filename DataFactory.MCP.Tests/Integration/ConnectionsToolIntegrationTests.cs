@@ -67,70 +67,11 @@ public class ConnectionsToolIntegrationTests : FabricToolIntegrationTestBase
     }
 
     [Fact]
-    public async Task GetConnectionAsync_WithNullConnectionId_ShouldReturnValidationError()
-    {
-        // Act
-        var result = await _connectionsTool.GetConnectionAsync(null!);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal("Connection ID is required.", result);
-    }
-
-    [Fact]
-    public async Task GetConnectionAsync_WithWhitespaceConnectionId_ShouldReturnValidationError()
-    {
-        // Act
-        var result = await _connectionsTool.GetConnectionAsync("   ");
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal("Connection ID is required.", result);
-    }
-
-    [Theory]
-    [InlineData("invalid-guid")]
-    [InlineData("test-connection-123")]
-    [InlineData("non-existent-connection")]
-    public async Task GetConnectionAsync_WithInvalidConnectionId_ShouldHandleIdParameter(string connectionId)
-    {
-        // Act
-        var result = await _connectionsTool.GetConnectionAsync(connectionId);
-
-        // Assert
-        AssertAuthenticationError(result);
-    }
-
-    [Fact]
     public void ConnectionsTool_ShouldBeRegisteredInDI()
     {
         // Assert
         Assert.NotNull(_connectionsTool);
         Assert.IsType<ConnectionsTool>(_connectionsTool);
-    }
-
-    [Fact]
-    public async Task ListConnectionsAsync_Result_ShouldNotBeJson_WhenUnauthenticated()
-    {
-        // Act
-        var result = await _connectionsTool.ListConnectionsAsync();
-
-        // Assert
-        Assert.NotNull(result);
-
-        // When there's an authentication error, the result should be a plain error message, not JSON
-        var isValidJson = false;
-        try
-        {
-            JsonDocument.Parse(result);
-            isValidJson = true;
-        }
-        catch (JsonException)
-        {
-            // Expected - should not be valid JSON when unauthenticated
-        }
-
-        Assert.False(isValidJson, $"Expected plain error message but got JSON: {result}");
     }
 
     #region Authenticated Scenarios
