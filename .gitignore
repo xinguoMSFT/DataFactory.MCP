@@ -1,3 +1,4 @@
 obj/
 bin/
 *.sln
+DataFactory.MCP.Tests/Infrastructure/.env

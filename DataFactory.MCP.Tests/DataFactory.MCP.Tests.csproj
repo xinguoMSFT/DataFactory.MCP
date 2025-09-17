@@ -25,6 +25,7 @@
         <PackageReference Include="ModelContextProtocol" Version="0.3.0-preview.2" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0-preview.6.25358.103" />
         <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0-preview.6.25358.103" />
+        <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
     </ItemGroup>
 
     <ItemGroup>
