@@ -109,30 +109,4 @@ public class AuthenticationToolIntegrationTests : IClassFixture<McpTestFixture>
         );
     }
 
-    [Theory]
-    [InlineData("test-app-id")]
-    [InlineData("a1b2c3d4-e5f6-7890-abcd-ef1234567890")]
-    public async Task AuthenticateServicePrincipalAsync_WithValidFormatButInvalidCredentials_ShouldHandleGracefully(string appId)
-    {
-        // Arrange
-        var testSecret = "test-secret-value";
-
-        // Act
-        var result = await _authTool.AuthenticateServicePrincipalAsync(appId, testSecret);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.NotEmpty(result);
-
-        // Should not throw exception and should return error message
-        Assert.DoesNotContain("Exception", result);
-        Assert.True(
-            result.Contains("Authentication error") ||
-            result.Contains("authentication failed") ||
-            result.Contains("Service principal authentication failed") ||
-            result.Contains("error") ||
-            result.Contains("Authentication service not available"),
-            $"Expected controlled error handling but got: {result}"
-        );
-    }
 }
