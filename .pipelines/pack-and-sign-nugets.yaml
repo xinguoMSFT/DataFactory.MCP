@@ -202,6 +202,14 @@ extends:
                     } else { Write-Host "Output directory not found: $out" }
                 continueOnError: true
 
+              # Publish NuGet packages as pipeline artifacts
+              - task: PublishPipelineArtifact@1
+                displayName: "Publish NuGet packages as artifacts"
+                inputs:
+                  targetPath: "$(OUTPUTROOT)"
+                  artifactName: "drop_build_main"
+                  publishLocation: "pipeline"
+
       # Publishing stage - uses regular pool to avoid release stage restrictions
       - ${{ if eq(parameters.publishToNuGet, true) }}:
           - stage: publish_to_nuget_gallery
@@ -227,26 +235,34 @@ extends:
                         Write-Host "=== Debugging Package Location ===" -ForegroundColor Cyan
                         Write-Host "Pipeline.Workspace: $(Pipeline.Workspace)"
 
-                        # Check the drop_build_main folder specifically
+                        # Check all possible artifact locations
+                        Write-Host "=== Checking all possible artifact locations ===" -ForegroundColor Yellow
+
+                        # 1. Check drop_build_main folder
                         $dropPath = "$(Pipeline.Workspace)/drop_build_main"
-                        Write-Host "=== Checking drop_build_main folder ===" -ForegroundColor Yellow
                         if (Test-Path $dropPath) {
-                          Write-Host "Contents of drop_build_main folder:" -ForegroundColor Green
-                          Get-ChildItem $dropPath -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
-                          
-                          # Look specifically for .nupkg files
-                          $packages = Get-ChildItem $dropPath -Filter "*.nupkg" -Recurse
-                          if ($packages) {
-                            Write-Host "Found NuGet packages in drop_build_main:" -ForegroundColor Green
-                            $packages | Select-Object FullName, Length | Format-Table -AutoSize
-                          } else {
-                            Write-Host "No .nupkg files found in drop_build_main" -ForegroundColor Red
-                          }
+                          Write-Host "Found drop_build_main folder:" -ForegroundColor Green
+                          Get-ChildItem $dropPath -Filter "*.nupkg" -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
                         } else {
                           Write-Host "drop_build_main folder not found!" -ForegroundColor Red
-                          Write-Host "Available folders in Pipeline.Workspace:" -ForegroundColor Yellow
-                          Get-ChildItem "$(Pipeline.Workspace)" | Select-Object FullName | Format-Table -AutoSize
                         }
+
+                        # 2. Check 'a' folder (Azure DevOps standard artifact location)
+                        $artifactPath = "$(Pipeline.Workspace)/a"
+                        if (Test-Path $artifactPath) {
+                          Write-Host "Found 'a' folder (standard artifact location):" -ForegroundColor Green
+                          Get-ChildItem $artifactPath -Filter "*.nupkg" -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
+                        } else {
+                          Write-Host "'a' folder not found!" -ForegroundColor Red
+                        }
+
+                        # 3. Search entire Pipeline.Workspace for any .nupkg files
+                        Write-Host "=== Searching entire Pipeline.Workspace for .nupkg files ===" -ForegroundColor Yellow
+                        Get-ChildItem "$(Pipeline.Workspace)" -Filter "*.nupkg" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName, Length | Format-Table -AutoSize
+
+                        # 4. List all folders in Pipeline.Workspace
+                        Write-Host "All folders in Pipeline.Workspace:" -ForegroundColor Yellow
+                        Get-ChildItem "$(Pipeline.Workspace)" | Select-Object FullName | Format-Table -AutoSize
                   - task: NuGetCommand@2
                     displayName: "Publish to NuGet.org"
                     inputs:
