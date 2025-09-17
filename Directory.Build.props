@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+    <PropertyGroup>
+        <!-- Global Version Properties -->
+        <MajorVersion>0</MajorVersion>
+        <MinorVersion>3</MinorVersion>
+        <PatchVersion>0</PatchVersion>
+        <PreReleaseLabel>beta</PreReleaseLabel>
+
+        <!-- Computed Version -->
+        <Version>$(MajorVersion).$(MinorVersion).$(PatchVersion)-$(PreReleaseLabel)</Version>
+        <PackageVersion>$(Version)</PackageVersion>
+        <AssemblyVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion).0</AssemblyVersion>
+        <FileVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion).0</FileVersion>
+
+        <!-- Global Package Properties -->
+        <Authors>Microsoft</Authors>
+        <Company>Microsoft Corporation</Company>
+        <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/microsoft/DataFactory.MCP.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://github.com/microsoft/DataFactory.MCP</PackageProjectUrl>
+    </PropertyGroup>
+</Project>

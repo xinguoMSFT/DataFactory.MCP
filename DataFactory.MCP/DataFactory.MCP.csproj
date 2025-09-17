@@ -14,17 +14,11 @@
     <!-- Set recommended package metadata -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageId>Microsoft.DataFactory.MCP</PackageId>
-    <PackageVersion>0.2.0-beta</PackageVersion>
+    <!-- Version is now inherited from Directory.Build.props -->
     <PackageTags>AI; MCP; server; stdio</PackageTags>
     <Description>An MCP server using the MCP C# SDK for DataFactory operations.</Description>
-    <Authors>Microsoft</Authors>
-    <Company>Microsoft Corporation</Company>
-    <PackageProjectUrl>https://github.com/microsoft/DataFactory.MCP</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/microsoft/DataFactory.MCP.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- Package metadata is now inherited from Directory.Build.props -->
     <PackageIcon>Data-Factory-300.png</PackageIcon>
-    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
   </PropertyGroup>
 
   <!-- Include additional files for browsing the MCP server. -->

@@ -94,6 +94,15 @@ extends:
                   version: "10.0.x"
                   includePreviewVersions: true
 
+              - task: PowerShell@2
+                displayName: "Update version in server.json and README.md"
+                inputs:
+                  targetType: "filePath"
+                  filePath: "$(Build.SourcesDirectory)/Update-ServerVersion.ps1"
+                  workingDirectory: "$(Build.SourcesDirectory)"
+                  pwsh: true
+                continueOnError: false
+
               - task: DotNetCoreCLI@2
                 displayName: "Restore packages"
                 inputs:
