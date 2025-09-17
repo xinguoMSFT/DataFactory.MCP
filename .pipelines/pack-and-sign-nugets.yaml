@@ -202,14 +202,6 @@ extends:
                     } else { Write-Host "Output directory not found: $out" }
                 continueOnError: true
 
-              # Publish NuGet packages as pipeline artifacts
-              - task: PublishPipelineArtifact@1
-                displayName: "Publish NuGet packages as artifacts"
-                inputs:
-                  targetPath: "$(OUTPUTROOT)"
-                  artifactName: "drop_build_main"
-                  publishLocation: "pipeline"
-
       # Publishing stage - uses regular pool to avoid release stage restrictions
       - ${{ if eq(parameters.publishToNuGet, true) }}:
           - stage: publish_to_nuget_gallery
