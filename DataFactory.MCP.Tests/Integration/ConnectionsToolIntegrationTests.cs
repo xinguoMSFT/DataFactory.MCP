@@ -155,6 +155,12 @@ public class ConnectionsToolIntegrationTests : IClassFixture<McpTestFixture>
         var clientSecret = Environment.GetEnvironmentVariable("AZURE_CLIENT_SECRET");
         var tenantId = Environment.GetEnvironmentVariable("AZURE_TENANT_ID");
 
+        // Debug: Log the environment variable status (without exposing secrets)
+        Console.WriteLine($"TryAuthenticateAsync Debug:");
+        Console.WriteLine($"  AZURE_CLIENT_ID: {(string.IsNullOrEmpty(clientId) ? "MISSING" : clientId.Contains("#") ? "PLACEHOLDER" : "SET")}");
+        Console.WriteLine($"  AZURE_CLIENT_SECRET: {(string.IsNullOrEmpty(clientSecret) ? "MISSING" : clientSecret.Contains("#") ? "PLACEHOLDER" : "SET")}");
+        Console.WriteLine($"  AZURE_TENANT_ID: {(string.IsNullOrEmpty(tenantId) ? "MISSING" : tenantId.Contains("#") ? "PLACEHOLDER" : "SET")}");
+
         // Skip authentication tests if environment variables are not set or are placeholder values
         if (string.IsNullOrEmpty(clientId) ||
             string.IsNullOrEmpty(clientSecret) ||
@@ -163,11 +169,16 @@ public class ConnectionsToolIntegrationTests : IClassFixture<McpTestFixture>
             clientSecret.Contains("#") ||
             tenantId.Contains("#"))
         {
+            Console.WriteLine("  RESULT: Skipping - credentials not available");
             return false;
         }
 
+        Console.WriteLine("  RESULT: Attempting authentication...");
         var result = await authTool.AuthenticateServicePrincipalAsync(clientId, clientSecret, tenantId);
-        return result.Contains("successfully") || result.Contains("completed successfully");
+        var success = result.Contains("successfully") || result.Contains("completed successfully");
+        Console.WriteLine($"  AUTHENTICATION RESULT: {(success ? "SUCCESS" : "FAILED")} - {result}");
+        
+        return success;
     }
 
     [SkippableFact]
