@@ -28,26 +28,26 @@ list_connections(continuationToken: "next-page-token")
 #### Response Format
 ```json
 {
-  "totalCount": 3,
-  "continuationToken": "eyJza2lwIjoyMCwidGFrZSI6MjB9",
-  "hasMoreResults": true,
+  "totalCount": 112,
+  "continuationToken": null,
+  "hasMoreResults": false,
   "connections": [
     {
-      "id": "12345678-1234-1234-1234-123456789012",
-      "displayName": "SQL Server Production",
+      "id": "a0b9fa12-60f5-4f95-85ca-565d34abcea1",
+      "displayName": "Example Cloud Data Source",
       "connectivityType": "OnPremisesGateway",
       "connectionDetails": {
-        "type": "SqlServer",
-        "path": "server01.company.com"
+        "type": "Web",
+        "path": "http://www.microsoft.com/"
       },
       "privacyLevel": "Organizational",
       "credentialDetails": {
-        "credentialType": "Windows",
+        "credentialType": "Anonymous",
         "singleSignOnType": "None",
-        "connectionEncryption": "Encrypted",
+        "connectionEncryption": "Any",
         "skipTestConnection": false
       },
-      "gatewayId": "87654321-4321-4321-4321-210987654321"
+      "gatewayId": "7d3b5733-732d-4bbe-8d17-db6f6fe5d19c"
     }
   ]
 }
@@ -59,25 +59,29 @@ Retrieve detailed information about a specific connection.
 
 #### Usage
 ```
-get_connection(connectionId: "12345678-1234-1234-1234-123456789012")
+get_connection(connectionId: "a0b9fa12-60f5-4f95-85ca-565d34abcea1")
 ```
 
 #### Response Format
 ```json
 {
-  "id": "12345678-1234-1234-1234-123456789012",
-  "displayName": "SQL Server Production",
+  "id": "a0b9fa12-60f5-4f95-85ca-565d34abcea1",
+  "displayName": "Example Cloud Data Source",
   "connectivityType": "OnPremisesGateway",
   "connectionDetails": {
-    "type": "SqlServer",
-    "path": "server01.company.com"
+    "type": "Web",
+    "path": "http://www.microsoft.com/"
   },
   "privacyLevel": "Organizational",
   "credentialDetails": {
-    "credentialType": "Windows",
+    "credentialType": "Anonymous",
     "singleSignOnType": "None",
-    "connectionEncryption": "Encrypted",
+    "connectionEncryption": "Any",
     "skipTestConnection": false
+  },
+  "gatewayId": "7d3b5733-732d-4bbe-8d17-db6f6fe5d19c"
+}
+```
   },
   "gatewayId": "87654321-4321-4321-4321-210987654321"
 }
@@ -91,8 +95,8 @@ get_connection(connectionId: "12345678-1234-1234-1234-123456789012")
 > show me all my data factory connections
 
 # Get specific connection details by ID
-> get details for connection with ID 12345678-1234-1234-1234-123456789012
+> get details for connection with ID a0b9fa12-60f5-4f95-85ca-565d34abcea1
 
 # Get specific connection details by name
-> get details for connection with name SQL Server Production
+> get details for connection with name Example Cloud Data Source
 ```
