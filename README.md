@@ -6,6 +6,7 @@ A Model Context Protocol (MCP) server for Microsoft Data Factory and Azure Fabri
 
 - 🔐 **Azure AD Authentication**: Interactive and service principal authentication
 - 🌐 **Gateway Management**: List and manage Azure Data Factory gateways
+- 🔗 **Connection Management**: List and retrieve details for Azure Data Factory connections
 - 🏗️ **Microsoft Fabric Integration**: Support for on-premises, personal, and virtual network gateways
 - 📦 **NuGet Distribution**: Available as a NuGet package for easy integration
 - 🔧 **MCP Protocol**: Built using the official MCP C# SDK
@@ -14,6 +15,7 @@ A Model Context Protocol (MCP) server for Microsoft Data Factory and Azure Fabri
 
 - **Authentication**: `authenticate_interactive`, `authenticate_service_principal`, `get_authentication_status`, `get_access_token`, `sign_out`
 - **Gateway Management**: `list_gateways`, `get_gateway`
+- **Connection Management**: `list_connections`, `get_connection`
 
 ## Quick Start
 
@@ -77,6 +79,7 @@ To run the server locally during development:
 See the detailed guides for comprehensive usage instructions:
 - **Authentication**: See [Authentication Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/authentication.md)
 - **Gateway Management**: See [Gateway Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/gateway-management.md)
+- **Connection Management**: See [Connection Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/connection-management.md)
 
 ## Development
 
@@ -106,6 +109,7 @@ For complete documentation, see our **[Documentation Index](https://github.com/m
 ### Quick Links
 - **[Authentication Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/authentication.md)** - Complete authentication setup and usage
 - **[Gateway Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/gateway-management.md)** - Gateway operations and examples
+- **[Connection Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/connection-management.md)** - Connection operations and examples
 - **[Architecture Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/ARCHITECTURE.md)** - Technical architecture and design details
 
 ## Contributing
