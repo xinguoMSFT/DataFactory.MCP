@@ -82,10 +82,6 @@ get_connection(connectionId: "a0b9fa12-60f5-4f95-85ca-565d34abcea1")
   "gatewayId": "7d3b5733-732d-4bbe-8d17-db6f6fe5d19c"
 }
 ```
-  },
-  "gatewayId": "87654321-4321-4321-4321-210987654321"
-}
-```
 
 ## Usage Examples
 
