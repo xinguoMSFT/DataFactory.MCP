@@ -31,7 +31,7 @@ public class AuthenticationService : IAuthenticationService
                 .WithRedirectUri(AzureAdConfiguration.RedirectUri)
                 .Build();
 
-            _logger.LogInformation("Azure AD client applications initialized successfully");
+            _logger.LogInformation(Messages.AzureAdClientInitializedSuccessfully);
         }
         catch (Exception ex)
         {
@@ -46,10 +46,10 @@ public class AuthenticationService : IAuthenticationService
         {
             if (_publicClientApp == null)
             {
-                return "Public client application not initialized. Check Azure AD configuration.";
+                return Messages.PublicClientNotInitialized;
             }
 
-            _logger.LogInformation("Starting interactive authentication...");
+            _logger.LogInformation(Messages.StartingInteractiveAuthentication);
 
             var result = await _publicClientApp
                 .AcquireTokenInteractive(AzureAdConfiguration.DefaultScopes)
@@ -64,19 +64,19 @@ public class AuthenticationService : IAuthenticationService
             );
 
             _logger.LogInformation("Interactive authentication completed successfully for user: {Username}", result.Account.Username);
-            return $"Interactive authentication completed successfully. User: {result.Account.Username}";
+            return string.Format(Messages.InteractiveAuthenticationSuccessTemplate, result.Account.Username);
         }
         catch (MsalException msalEx)
         {
             _logger.LogError(msalEx, "MSAL authentication failed");
             _currentAuth = null;
-            return $"Authentication failed: {msalEx.Message}";
+            return string.Format(Messages.AuthenticationFailedTemplate, msalEx.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Interactive authentication failed");
             _currentAuth = null;
-            return $"Authentication error: {ex.Message}";
+            return string.Format(Messages.AuthenticationErrorTemplate, ex.Message);
         }
     }
 
@@ -107,19 +107,19 @@ public class AuthenticationService : IAuthenticationService
             );
 
             _logger.LogInformation("Service principal authentication completed successfully for app: {ApplicationId}", applicationId);
-            return $"Service principal authentication completed successfully for application: {applicationId}";
+            return string.Format(Messages.ServicePrincipalAuthenticationSuccessTemplate, applicationId);
         }
         catch (MsalException msalEx)
         {
             _logger.LogError(msalEx, "MSAL service principal authentication failed for app: {ApplicationId}", applicationId);
             _currentAuth = null;
-            return $"Service principal authentication failed: {msalEx.Message}";
+            return string.Format(Messages.ServicePrincipalAuthenticationFailedTemplate, msalEx.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Service principal authentication failed for app: {ApplicationId}", applicationId);
             _currentAuth = null;
-            return $"Authentication error: {ex.Message}";
+            return string.Format(Messages.AuthenticationErrorTemplate, ex.Message);
         }
     }
 
@@ -127,7 +127,7 @@ public class AuthenticationService : IAuthenticationService
     {
         if (_currentAuth == null || !_currentAuth.IsSuccess)
         {
-            return "Not authenticated. Please authenticate using interactive login or service principal.";
+            return Messages.NotAuthenticated;
         }
 
         var status = $"""
@@ -145,11 +145,11 @@ public class AuthenticationService : IAuthenticationService
     {
         try
         {
-            _logger.LogInformation("Signing out current user...");
+            _logger.LogInformation(Messages.SigningOutCurrentUser);
 
             if (_currentAuth == null)
             {
-                return "No active authentication session found.";
+                return Messages.NoActiveAuthenticationSession;
             }
 
             var userName = _currentAuth.UserName;
@@ -166,12 +166,12 @@ public class AuthenticationService : IAuthenticationService
 
             _currentAuth = null;
             _logger.LogInformation("Successfully signed out user: {UserName}", userName);
-            return $"Successfully signed out user: {userName}";
+            return string.Format(Messages.SignOutSuccessTemplate, userName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during sign out");
-            return $"Sign out error: {ex.Message}";
+            return string.Format(Messages.SignOutErrorTemplate, ex.Message);
         }
     }
 
@@ -181,7 +181,7 @@ public class AuthenticationService : IAuthenticationService
         {
             if (_currentAuth == null || !_currentAuth.IsSuccess)
             {
-                return "No valid authentication found. Please authenticate first.";
+                return Messages.NoAuthenticationFound;
             }
 
             if (_currentAuth.ExpiresOn.HasValue && _currentAuth.ExpiresOn <= DateTime.UtcNow)
@@ -206,24 +206,24 @@ public class AuthenticationService : IAuthenticationService
                                 string.Join(", ", result.Scopes)
                             );
 
-                            return _currentAuth.AccessToken ?? "Token not available";
+                            return _currentAuth.AccessToken ?? Messages.TokenNotAvailable;
                         }
                         catch (MsalUiRequiredException)
                         {
-                            return "Access token has expired and cannot be refreshed silently. Please re-authenticate.";
+                            return Messages.AccessTokenExpiredCannotRefresh;
                         }
                     }
                 }
 
-                return "Access token has expired. Please re-authenticate.";
+                return Messages.AccessTokenExpired;
             }
 
-            return _currentAuth.AccessToken ?? "Token not available";
+            return _currentAuth.AccessToken ?? Messages.TokenNotAvailable;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving access token");
-            return $"Error retrieving access token: {ex.Message}";
+            return string.Format(Messages.ErrorRetrievingAccessTokenTemplate, ex.Message);
         }
     }
 }

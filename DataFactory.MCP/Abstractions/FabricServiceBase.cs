@@ -1,4 +1,5 @@
 using DataFactory.MCP.Abstractions.Interfaces;
+using DataFactory.MCP.Models;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -42,12 +43,12 @@ public abstract class FabricServiceBase
 
             if (tokenResult.Contains("No valid authentication") || tokenResult.Contains("expired"))
             {
-                throw new UnauthorizedAccessException("Valid authentication token is required. Please authenticate first.");
+                throw new UnauthorizedAccessException(Messages.AuthenticationRequired);
             }
 
             if (!tokenResult.StartsWith("eyJ")) // Basic JWT token validation
             {
-                throw new UnauthorizedAccessException("Invalid access token format.");
+                throw new UnauthorizedAccessException(Messages.InvalidTokenFormat);
             }
 
             HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResult);

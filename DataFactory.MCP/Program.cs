@@ -19,11 +19,16 @@ builder.Services.AddTransient<AuthenticationTool>();
 builder.Services.AddHttpClient<IFabricGatewayService, FabricGatewayService>();
 builder.Services.AddTransient<GatewayTool>();
 
+// Add HTTP client and Fabric Connection services
+builder.Services.AddHttpClient<IFabricConnectionService, FabricConnectionService>();
+builder.Services.AddTransient<ConnectionsTool>();
+
 // Add the MCP services: the transport to use (stdio) and the tools to register.
 builder.Services
     .AddMcpServer()
     .WithStdioServerTransport()
     .WithTools<AuthenticationTool>()
-    .WithTools<GatewayTool>();
+    .WithTools<GatewayTool>()
+    .WithTools<ConnectionsTool>();
 
 await builder.Build().RunAsync();

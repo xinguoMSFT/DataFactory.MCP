@@ -1,15 +1,13 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using DataFactory.MCP.Abstractions.Interfaces;
+using DataFactory.MCP.Models;
 
 namespace DataFactory.MCP.Tools;
 
 [McpServerToolType]
 public class AuthenticationTool
 {
-    private const string ServiceProviderNotInitializedMessage = "Service provider not initialized";
-    private const string AuthServiceNotAvailableMessage = "Error: Authentication service not available. Please ensure the server is properly initialized.";
-
     private readonly IAuthenticationService _authService;
 
     public AuthenticationTool(IAuthenticationService authService)
@@ -24,13 +22,13 @@ public class AuthenticationTool
         {
             return await _authService.AuthenticateInteractiveAsync();
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains(ServiceProviderNotInitializedMessage))
+        catch (InvalidOperationException ex) when (ex.Message.Contains(Messages.ServiceProviderNotInitialized))
         {
-            return AuthServiceNotAvailableMessage;
+            return Messages.AuthServiceNotAvailable;
         }
         catch (Exception ex)
         {
-            return $"Authentication error: {ex.Message}";
+            return string.Format(Messages.AuthenticationErrorTemplate, ex.Message);
         }
     }
 
@@ -44,20 +42,20 @@ public class AuthenticationTool
         {
             // Validate parameters
             if (string.IsNullOrWhiteSpace(applicationId))
-                return "Invalid parameter: applicationId cannot be empty";
+                return Messages.InvalidParameterApplicationIdEmpty;
 
             if (string.IsNullOrWhiteSpace(clientSecret))
-                return "Invalid parameter: clientSecret cannot be empty";
+                return Messages.InvalidParameterClientSecretEmpty;
 
             return await _authService.AuthenticateServicePrincipalAsync(applicationId, clientSecret, tenantId);
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains(ServiceProviderNotInitializedMessage))
+        catch (InvalidOperationException ex) when (ex.Message.Contains(Messages.ServiceProviderNotInitialized))
         {
-            return AuthServiceNotAvailableMessage;
+            return Messages.AuthServiceNotAvailable;
         }
         catch (Exception ex)
         {
-            return $"Authentication error: {ex.Message}";
+            return string.Format(Messages.AuthenticationErrorTemplate, ex.Message);
         }
     }
 
@@ -68,13 +66,13 @@ public class AuthenticationTool
         {
             return _authService.GetAuthenticationStatus();
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains(ServiceProviderNotInitializedMessage))
+        catch (InvalidOperationException ex) when (ex.Message.Contains(Messages.ServiceProviderNotInitialized))
         {
-            return AuthServiceNotAvailableMessage;
+            return Messages.AuthServiceNotAvailable;
         }
         catch (Exception ex)
         {
-            return $"Error retrieving authentication status: {ex.Message}";
+            return string.Format(Messages.ErrorRetrievingAuthStatusTemplate, ex.Message);
         }
     }
 
@@ -85,13 +83,13 @@ public class AuthenticationTool
         {
             return await _authService.SignOutAsync();
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains(ServiceProviderNotInitializedMessage))
+        catch (InvalidOperationException ex) when (ex.Message.Contains(Messages.ServiceProviderNotInitialized))
         {
-            return AuthServiceNotAvailableMessage;
+            return Messages.AuthServiceNotAvailable;
         }
         catch (Exception ex)
         {
-            return $"Sign out error: {ex.Message}";
+            return string.Format(Messages.SignOutErrorTemplate, ex.Message);
         }
     }
 
@@ -102,13 +100,13 @@ public class AuthenticationTool
         {
             return await _authService.GetAccessTokenAsync();
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains(ServiceProviderNotInitializedMessage))
+        catch (InvalidOperationException ex) when (ex.Message.Contains(Messages.ServiceProviderNotInitialized))
         {
-            return AuthServiceNotAvailableMessage;
+            return Messages.AuthServiceNotAvailable;
         }
         catch (Exception ex)
         {
-            return $"Error retrieving access token: {ex.Message}";
+            return string.Format(Messages.ErrorRetrievingAccessTokenTemplate, ex.Message);
         }
     }
 }
