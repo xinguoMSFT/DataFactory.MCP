@@ -63,9 +63,14 @@ public class AuthenticationToolIntegrationTests : FabricToolIntegrationTestBase
         );
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task AuthenticateServicePrincipalAsync_WithRealCredentials_ShouldSucceed()
     {
+        // Arrange - Try to authenticate
+        var isAuthenticated = await TryAuthenticateAsync();
+
+        Skip.IfNot(isAuthenticated, "Skipping authenticated test - no valid credentials available");
+
         // Arrange - using real service principal credentials from environment
         var realAppId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID") ?? "#{AZURE_CLIENT_ID}#";
         var realSecret = Environment.GetEnvironmentVariable("AZURE_CLIENT_SECRET") ?? "#{AZURE_CLIENT_SECRET}#";
