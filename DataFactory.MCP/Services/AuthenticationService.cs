@@ -26,10 +26,10 @@ public class AuthenticationService : IAuthenticationService
         {
             // Initialize public client for interactive authentication
             _publicClientApp = PublicClientApplicationBuilder
-                .Create(AzureAdConfiguration.ClientId)
-                .WithAuthority(AzureAdConfiguration.Authority)
-                .WithRedirectUri(AzureAdConfiguration.RedirectUri)
-                .Build();
+            .Create(AzureAdConfiguration.ClientId)
+            .WithAuthority(new Uri(AzureAdConfiguration.Authority))
+            .WithRedirectUri(AzureAdConfiguration.RedirectUri)
+            .Build();
 
             _logger.LogInformation(Messages.AzureAdClientInitializedSuccessfully);
         }
