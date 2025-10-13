@@ -3,7 +3,7 @@
     <PropertyGroup>
         <!-- Global Version Properties -->
         <MajorVersion>0</MajorVersion>
-        <MinorVersion>4</MinorVersion>
+        <MinorVersion>5</MinorVersion>
         <PatchVersion>0</PatchVersion>
         <PreReleaseLabel>beta</PreReleaseLabel>
 
