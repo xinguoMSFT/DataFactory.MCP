@@ -1,14 +1,14 @@
 # Microsoft Data Factory MCP Server
 
-A Model Context Protocol (MCP) server for Microsoft Data Factory and Azure Fabric Gateway management operations. This server provides tools for authentication and gateway management through a standardized MCP interface.
+A Model Context Protocol (MCP) server for Microsoft Fabric resource discovery and information retrieval. This server provides tools for authentication and accessing Microsoft Fabric resources through a standardized MCP interface.
 
 ## Features
 
 - 🔐 **Azure AD Authentication**: Interactive and service principal authentication
-- 🌐 **Gateway Management**: List and manage Azure Data Factory gateways
-- 🔗 **Connection Management**: List and retrieve details for Azure Data Factory connections
-- 📊 **Workspace Management**: List and manage Microsoft Fabric workspaces
-- 🌊 **Dataflow Management**: List and manage Microsoft Fabric dataflows
+- 🌐 **Gateway Management**: List and retrieve Microsoft Fabric gateways
+- 🔗 **Connection Management**: List and retrieve details for Microsoft Fabric connections
+- 📊 **Workspace Management**: List and retrieve Microsoft Fabric workspaces
+- 🌊 **Dataflow Management**: List and retrieve Microsoft Fabric dataflows
 - 🏗️ **Microsoft Fabric Integration**: Support for on-premises, personal, and virtual network gateways
 - 📦 **NuGet Distribution**: Available as a NuGet package for easy integration
 - 🔧 **MCP Protocol**: Built using the official MCP C# SDK
