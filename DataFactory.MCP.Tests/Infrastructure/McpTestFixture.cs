@@ -53,6 +53,7 @@ public class McpTestFixture : IDisposable
                 services.AddScoped<IFabricConnectionService, FabricConnectionService>();
                 services.AddScoped<IFabricWorkspaceService, FabricWorkspaceService>();
                 services.AddScoped<IFabricDataflowService, FabricDataflowService>();
+                services.AddScoped<IFabricCapacityService, FabricCapacityService>();
 
                 // Register tools
                 services.AddScoped<AuthenticationTool>();
@@ -60,6 +61,7 @@ public class McpTestFixture : IDisposable
                 services.AddScoped<ConnectionsTool>();
                 services.AddScoped<WorkspacesTool>();
                 services.AddScoped<DataflowTool>();
+                services.AddScoped<CapacityTool>();
             })
             .Build();
 
