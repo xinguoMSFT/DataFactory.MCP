@@ -17,12 +17,14 @@ builder.Services
     .AddSingleton<IFabricConnectionService, FabricConnectionService>()
     .AddSingleton<IFabricWorkspaceService, FabricWorkspaceService>()
     .AddSingleton<IFabricDataflowService, FabricDataflowService>()
+    .AddSingleton<IFabricCapacityService, FabricCapacityService>()
     .AddMcpServer()
     .WithStdioServerTransport()
     .WithTools<AuthenticationTool>()
     .WithTools<GatewayTool>()
     .WithTools<ConnectionsTool>()
     .WithTools<WorkspacesTool>()
-    .WithTools<DataflowTool>();
+    .WithTools<DataflowTool>()
+    .WithTools<CapacityTool>();
 
 await builder.Build().RunAsync();
