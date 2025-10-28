@@ -9,12 +9,13 @@ A Model Context Protocol (MCP) server for Microsoft Fabric resource discovery an
 
 ## Features
 
-- 🔐 **Azure AD Authentication**: Interactive and service principal authentication
-- 🌐 **Gateway Management**: List and retrieve Microsoft Fabric gateways
-- 🔗 **Connection Management**: List and retrieve details for Microsoft Fabric connections
-- 📊 **Workspace Management**: List and retrieve Microsoft Fabric workspaces
-- 🌊 **Dataflow Management**: List and retrieve Microsoft Fabric dataflows
-- 🏗️ **Microsoft Fabric Integration**: Support for on-premises, personal, and virtual network gateways
+- **Azure AD Authentication**: Interactive and service principal authentication
+- **Gateway Management**: List and retrieve Microsoft Fabric gateways
+- **Connection Management**: List and retrieve details for Microsoft Fabric connections
+- **Workspace Management**: List and retrieve Microsoft Fabric workspaces
+- **Dataflow Management**: List and retrieve Microsoft Fabric dataflows
+- **Capacity Management**: List and retrieve Microsoft Fabric capacities
+- **Microsoft Fabric Integration**: Support for on-premises, personal, and virtual network gateways
 - 📦 **NuGet Distribution**: Available as a NuGet package for easy integration
 - 🔧 **MCP Protocol**: Built using the official MCP C# SDK
 
@@ -25,6 +26,7 @@ A Model Context Protocol (MCP) server for Microsoft Fabric resource discovery an
 - **Connection Management**: `list_connections`, `get_connection`
 - **Workspace Management**: `list_workspaces`
 - **Dataflow Management**: `list_dataflows`
+- **Capacity Management**: `list_capacities`
 
 ## Quick Start
 
@@ -91,6 +93,7 @@ See the detailed guides for comprehensive usage instructions:
 - **Connection Management**: See [Connection Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/connection-management.md)
 - **Workspace Management**: See [Workspace Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/workspace-management.md)
 - **Dataflow Management**: See [Dataflow Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/dataflow-management.md)
+- **Capacity Management**: See [Capacity Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/capacity-management.md)
 
 ## Development
 
@@ -123,6 +126,7 @@ For complete documentation, see our **[Documentation Index](https://github.com/m
 - **[Connection Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/connection-management.md)** - Connection operations and examples
 - **[Workspace Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/workspace-management.md)** - Workspace operations and examples
 - **[Dataflow Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/dataflow-management.md)** - Dataflow operations and examples
+- **[Capacity Management Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/capacity-management.md)** - Capacity operations and examples
 - **[Architecture Guide](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/ARCHITECTURE.md)** - Technical architecture and design details
 
 ## Contributing
