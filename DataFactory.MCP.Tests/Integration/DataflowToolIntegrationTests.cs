@@ -112,8 +112,7 @@ public class DataflowToolIntegrationTests : FabricToolIntegrationTestBase
         AssertNoAuthenticationError(result);
 
         // Should contain API error information
-        Assert.Contains("API request failed", result);
-        Assert.Contains("BadRequest", result);
+        Assert.Contains("workspaceId must be a valid GUID", result);
     }
 
     [SkippableFact]

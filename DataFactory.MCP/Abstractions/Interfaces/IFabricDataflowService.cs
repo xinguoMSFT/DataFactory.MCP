@@ -16,4 +16,14 @@ public interface IFabricDataflowService
     Task<ListDataflowsResponse> ListDataflowsAsync(
         string workspaceId,
         string? continuationToken = null);
+
+    /// <summary>
+    /// Creates a new dataflow in the specified workspace
+    /// </summary>
+    /// <param name="workspaceId">The workspace ID where the dataflow will be created</param>
+    /// <param name="request">The create dataflow request</param>
+    /// <returns>The created dataflow information</returns>
+    Task<CreateDataflowResponse> CreateDataflowAsync(
+        string workspaceId,
+        CreateDataflowRequest request);
 }

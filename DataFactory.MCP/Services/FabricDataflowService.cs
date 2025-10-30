@@ -3,6 +3,7 @@ using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Models.Dataflow;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using System.Text.Json;
 
 namespace DataFactory.MCP.Services;
 
@@ -11,11 +12,15 @@ namespace DataFactory.MCP.Services;
 /// </summary>
 public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
 {
+    private readonly IValidationService _validationService;
+
     public FabricDataflowService(
         ILogger<FabricDataflowService> logger,
-        IAuthenticationService authService)
+        IAuthenticationService authService,
+        IValidationService validationService)
         : base(logger, authService)
     {
+        _validationService = validationService;
     }
 
     public async Task<ListDataflowsResponse> ListDataflowsAsync(
@@ -24,10 +29,7 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
     {
         try
         {
-            if (string.IsNullOrEmpty(workspaceId))
-            {
-                throw new ArgumentException("Workspace ID is required", nameof(workspaceId));
-            }
+            _validationService.ValidateGuid(workspaceId, nameof(workspaceId));
 
             await EnsureAuthenticationAsync();
 
@@ -58,6 +60,53 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error fetching dataflows from workspace {WorkspaceId}", workspaceId);
+            throw;
+        }
+    }
+
+    public async Task<CreateDataflowResponse> CreateDataflowAsync(
+        string workspaceId,
+        CreateDataflowRequest request)
+    {
+        try
+        {
+            _validationService.ValidateGuid(workspaceId, nameof(workspaceId));
+            _validationService.ValidateAndThrow(request, nameof(request));
+
+            await EnsureAuthenticationAsync();
+
+            var url = $"{BaseUrl}/workspaces/{workspaceId}/dataflows";
+            var jsonContent = JsonSerializer.Serialize(request, JsonOptions);
+            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+            Logger.LogInformation("Creating dataflow '{DisplayName}' in workspace {WorkspaceId}: {Url}",
+                request.DisplayName, workspaceId, url);
+
+            var response = await HttpClient.PostAsync(url, content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var createResponse = JsonSerializer.Deserialize<CreateDataflowResponse>(responseContent, JsonOptions);
+
+                Logger.LogInformation("Successfully created dataflow '{DisplayName}' with ID {DataflowId} in workspace {WorkspaceId}",
+                    request.DisplayName, createResponse?.Id, workspaceId);
+
+                return createResponse ?? new CreateDataflowResponse();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Logger.LogError("Failed to create dataflow. Status: {StatusCode}, Content: {Content}",
+                    response.StatusCode, errorContent);
+
+                throw new HttpRequestException($"Failed to create dataflow: {response.StatusCode} - {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating dataflow '{DisplayName}' in workspace {WorkspaceId}",
+                request?.DisplayName, workspaceId);
             throw;
         }
     }
