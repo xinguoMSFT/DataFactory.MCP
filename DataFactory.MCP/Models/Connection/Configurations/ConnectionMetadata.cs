@@ -1,4 +1,4 @@
-namespace DataFactory.MCP.Models.Connection;
+namespace DataFactory.MCP.Models.Connection.Configurations;
 
 /// <summary>
 /// Metadata for connection creation

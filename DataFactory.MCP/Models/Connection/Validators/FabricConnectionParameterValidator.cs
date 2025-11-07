@@ -1,6 +1,6 @@
 using DataFactory.MCP.Abstractions.Interfaces;
 
-namespace DataFactory.MCP.Models.Connection;
+namespace DataFactory.MCP.Models.Connection.Validators;
 
 /// <summary>
 /// Helper class for validating Microsoft Fabric data source connection parameters

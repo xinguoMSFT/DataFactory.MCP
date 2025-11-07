@@ -1,8 +1,10 @@
 using DataFactory.MCP.Abstractions.Interfaces;
+using DataFactory.MCP.Models.Connection.Interfaces;
+using DataFactory.MCP.Models.Connection.Configurations;
+using DataFactory.MCP.Models.Connection.Validators;
 using Microsoft.Extensions.Logging;
 
-
-namespace DataFactory.MCP.Models.Connection;
+namespace DataFactory.MCP.Models.Connection.Factories;
 
 /// <summary>
 /// Factory for creating Microsoft Fabric data source connections with minimal code duplication

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using DataFactory.MCP.Models;
 
-namespace DataFactory.MCP.Models.Connection;
+namespace DataFactory.MCP.Models.Connection.Formatters;
 
 /// <summary>
 /// Helper class for formatting Microsoft Fabric data source connection results consistently

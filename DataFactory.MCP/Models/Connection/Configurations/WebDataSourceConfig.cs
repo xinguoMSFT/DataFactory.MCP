@@ -1,4 +1,6 @@
-namespace DataFactory.MCP.Models.Connection;
+using DataFactory.MCP.Models.Connection.Interfaces;
+
+namespace DataFactory.MCP.Models.Connection.Configurations;
 
 /// <summary>
 /// Web data source configuration
