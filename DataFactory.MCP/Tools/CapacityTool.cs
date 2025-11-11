@@ -2,9 +2,6 @@ using ModelContextProtocol.Server;
 using System.ComponentModel;
 using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Extensions;
-using DataFactory.MCP.Factories;
-using DataFactory.MCP.Models;
-using System.Text.Json;
 
 namespace DataFactory.MCP.Tools;
 
@@ -43,15 +40,15 @@ public class CapacityTool
         }
         catch (UnauthorizedAccessException ex)
         {
-            return ErrorResponseFactory.CreateAuthenticationError(ex.Message).ToMcpJson();
+            return ex.ToAuthenticationError().ToMcpJson();
         }
         catch (HttpRequestException ex)
         {
-            return ErrorResponseFactory.CreateHttpError(ex.Message).ToMcpJson();
+            return ex.ToHttpError().ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("listing capacities", ex.Message).ToMcpJson();
+            return ex.ToOperationError("listing capacities").ToMcpJson();
         }
     }
 }

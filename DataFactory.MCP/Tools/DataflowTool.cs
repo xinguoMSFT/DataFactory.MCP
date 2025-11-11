@@ -2,10 +2,7 @@ using ModelContextProtocol.Server;
 using System.ComponentModel;
 using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Extensions;
-using DataFactory.MCP.Factories;
-using DataFactory.MCP.Models;
 using DataFactory.MCP.Models.Dataflow;
-using System.Text.Json;
 
 namespace DataFactory.MCP.Tools;
 
@@ -52,19 +49,19 @@ public class DataflowTool
         }
         catch (ArgumentException ex)
         {
-            return ErrorResponseFactory.CreateValidationError(ex.Message).ToMcpJson();
+            return ex.ToValidationError().ToMcpJson();
         }
         catch (UnauthorizedAccessException ex)
         {
-            return ErrorResponseFactory.CreateAuthenticationError(ex.Message).ToMcpJson();
+            return ex.ToAuthenticationError().ToMcpJson();
         }
         catch (HttpRequestException ex)
         {
-            return ErrorResponseFactory.CreateHttpError(ex.Message).ToMcpJson();
+            return ex.ToHttpError().ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("listing dataflows", ex.Message).ToMcpJson();
+            return ex.ToOperationError("listing dataflows").ToMcpJson();
         }
     }
 
@@ -103,23 +100,24 @@ public class DataflowTool
         }
         catch (ArgumentException ex)
         {
-            return $"Error: {ex.Message}";
+            return ex.ToValidationError().ToMcpJson();
         }
         catch (UnauthorizedAccessException ex)
         {
-            return string.Format(Messages.AuthenticationErrorTemplate, ex.Message);
+            return ex.ToAuthenticationError().ToMcpJson();
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("403") || ex.Message.Contains("Forbidden"))
         {
-            return $"Error: Access denied or feature not available. The workspace must be on a supported Fabric capacity to create dataflows. Details: {ex.Message}";
+            return new HttpRequestException("Access denied or feature not available. The workspace must be on a supported Fabric capacity to create dataflows.")
+                .ToHttpError().ToMcpJson();
         }
         catch (HttpRequestException ex)
         {
-            return string.Format(Messages.ApiRequestFailedTemplate, ex.Message);
+            return ex.ToHttpError().ToMcpJson();
         }
         catch (Exception ex)
         {
-            return $"Error creating dataflow: {ex.Message}";
+            return ex.ToOperationError("creating dataflow").ToMcpJson();
         }
     }
 

@@ -1,9 +1,7 @@
 using DataFactory.MCP.Abstractions;
 using DataFactory.MCP.Abstractions.Interfaces;
-using DataFactory.MCP.Models;
 using DataFactory.MCP.Models.Gateway;
 using Microsoft.Extensions.Logging;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 

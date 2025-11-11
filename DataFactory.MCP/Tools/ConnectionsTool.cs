@@ -1,13 +1,9 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
-using System.Text.Json;
 using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Extensions;
-using DataFactory.MCP.Factories;
 using DataFactory.MCP.Models;
-using DataFactory.MCP.Models.Connection;
 using DataFactory.MCP.Models.Connection.Factories;
-using DataFactory.MCP.Models.Connection.Formatters;
 
 namespace DataFactory.MCP.Tools;
 
@@ -51,15 +47,15 @@ public class ConnectionsTool
         }
         catch (UnauthorizedAccessException ex)
         {
-            return ErrorResponseFactory.CreateAuthenticationError(ex.Message).ToMcpJson();
+            return ex.ToAuthenticationError().ToMcpJson();
         }
         catch (HttpRequestException ex)
         {
-            return ErrorResponseFactory.CreateHttpError(ex.Message).ToMcpJson();
+            return ex.ToHttpError().ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("listing connections", ex.Message).ToMcpJson();
+            return ex.ToOperationError("listing connections").ToMcpJson();
         }
     }
 
@@ -78,7 +74,7 @@ public class ConnectionsTool
 
             if (connection == null)
             {
-                return ErrorResponseFactory.CreateNotFoundError("Connection", connectionId).ToMcpJson();
+                return ResponseExtensions.ToNotFoundError("Connection", connectionId).ToMcpJson();
             }
 
             var result = connection.ToFormattedInfo();
@@ -86,11 +82,11 @@ public class ConnectionsTool
         }
         catch (UnauthorizedAccessException ex)
         {
-            return ErrorResponseFactory.CreateAuthenticationError(ex.Message).ToMcpJson();
+            return ex.ToAuthenticationError().ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("retrieving connection", ex.Message).ToMcpJson();
+            return ex.ToOperationError("retrieving connection").ToMcpJson();
         }
     }
 
@@ -107,11 +103,11 @@ public class ConnectionsTool
             var connection = await _connectionFactory.CreateCloudSqlBasicAsync(
                 displayName, serverName, databaseName, username, password);
 
-            return FabricConnectionResultFormatter.FormatConnectionResult(connection, "Cloud SQL connection with basic authentication created successfully");
+            return connection.ToCreationSuccessResponse("Cloud SQL connection with basic authentication created successfully").ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("creating cloud SQL connection", ex.Message).ToMcpJson();
+            return ex.ToOperationError("creating cloud SQL connection").ToMcpJson();
         }
     }
 
@@ -126,11 +122,11 @@ public class ConnectionsTool
             var connection = await _connectionFactory.CreateCloudSqlWorkspaceIdentityAsync(
                 displayName, serverName, databaseName);
 
-            return FabricConnectionResultFormatter.FormatConnectionResult(connection, "Cloud SQL connection with workspace identity created successfully");
+            return connection.ToCreationSuccessResponse("Cloud SQL connection with workspace identity created successfully").ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("creating cloud SQL workspace identity connection", ex.Message).ToMcpJson();
+            return ex.ToOperationError("creating cloud SQL workspace identity connection").ToMcpJson();
         }
     }
 
@@ -143,11 +139,11 @@ public class ConnectionsTool
         {
             var connection = await _connectionFactory.CreateCloudWebAnonymousAsync(displayName, url);
 
-            return FabricConnectionResultFormatter.FormatConnectionResult(connection, "Cloud web connection with anonymous authentication created successfully");
+            return connection.ToCreationSuccessResponse("Cloud web connection with anonymous authentication created successfully").ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("creating cloud web anonymous connection", ex.Message).ToMcpJson();
+            return ex.ToOperationError("creating cloud web anonymous connection").ToMcpJson();
         }
     }
 
@@ -163,11 +159,11 @@ public class ConnectionsTool
             var connection = await _connectionFactory.CreateCloudWebBasicAsync(
                 displayName, url, username, password);
 
-            return FabricConnectionResultFormatter.FormatConnectionResult(connection, "Cloud web connection with basic authentication created successfully");
+            return connection.ToCreationSuccessResponse("Cloud web connection with basic authentication created successfully").ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("creating cloud web basic connection", ex.Message).ToMcpJson();
+            return ex.ToOperationError("creating cloud web basic connection").ToMcpJson();
         }
     }
 
@@ -185,11 +181,11 @@ public class ConnectionsTool
             var connection = await _connectionFactory.CreateVNetSqlBasicAsync(
                 displayName, gatewayId, serverName, databaseName, username, password);
 
-            return FabricConnectionResultFormatter.FormatConnectionResult(connection, "VNet gateway SQL connection with basic authentication created successfully");
+            return connection.ToCreationSuccessResponse("VNet gateway SQL connection with basic authentication created successfully").ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("creating VNet gateway SQL connection", ex.Message).ToMcpJson();
+            return ex.ToOperationError("creating VNet gateway SQL connection").ToMcpJson();
         }
     }
 
@@ -205,11 +201,11 @@ public class ConnectionsTool
             var connection = await _connectionFactory.CreateVNetSqlWorkspaceIdentityAsync(
                 displayName, gatewayId, serverName, databaseName);
 
-            return FabricConnectionResultFormatter.FormatConnectionResult(connection, "VNet gateway SQL connection with workspace identity created successfully");
+            return connection.ToSuccessResponse("VNet gateway SQL connection with workspace identity created successfully").ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("creating VNet gateway SQL workspace identity connection", ex.Message).ToMcpJson();
+            return ex.ToOperationError("creating VNet gateway SQL workspace identity connection").ToMcpJson();
         }
     }
 }

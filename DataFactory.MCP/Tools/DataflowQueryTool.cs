@@ -3,7 +3,6 @@ using System.ComponentModel;
 using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Extensions;
 using DataFactory.MCP.Models.Dataflow;
-using DataFactory.MCP.Factories;
 
 namespace DataFactory.MCP.Tools;
 
@@ -54,25 +53,25 @@ FORMATTING INSTRUCTION: When displaying results to users, please format the 'tab
             // Return formatted response
             var result = response.Success
                 ? response.CreateArrowDataReport()
-                : ErrorResponseFactory.CreateQueryExecutionError(response, workspaceId, dataflowId, queryName);
+                : response.ToQueryExecutionError(workspaceId, dataflowId, queryName);
 
             return result.ToMcpJson();
         }
         catch (ArgumentException ex)
         {
-            return ErrorResponseFactory.CreateValidationError(ex.Message).ToMcpJson();
+            return ex.ToValidationError().ToMcpJson();
         }
         catch (UnauthorizedAccessException ex)
         {
-            return ErrorResponseFactory.CreateAuthenticationError(ex.Message).ToMcpJson();
+            return ex.ToAuthenticationError().ToMcpJson();
         }
         catch (HttpRequestException ex)
         {
-            return ErrorResponseFactory.CreateHttpError(ex.Message).ToMcpJson();
+            return ex.ToHttpError().ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateGenericError(ex.Message).ToMcpJson();
+            return ex.ToOperationError("executing dataflow query").ToMcpJson();
         }
     }
 

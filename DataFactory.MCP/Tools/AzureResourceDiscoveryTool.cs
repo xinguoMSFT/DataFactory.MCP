@@ -2,8 +2,6 @@ using ModelContextProtocol.Server;
 using System.ComponentModel;
 using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Extensions;
-using DataFactory.MCP.Factories;
-using System.Text.Json;
 
 namespace DataFactory.MCP.Tools;
 
@@ -45,7 +43,7 @@ public class AzureResourceDiscoveryTool
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("retrieving Azure subscriptions", ex.Message).ToMcpJson();
+            return ex.ToOperationError("retrieving Azure subscriptions").ToMcpJson();
         }
     }
 
@@ -56,7 +54,7 @@ public class AzureResourceDiscoveryTool
         {
             if (string.IsNullOrWhiteSpace(subscriptionId))
             {
-                return ErrorResponseFactory.CreateValidationError("subscriptionId is required").ToMcpJson();
+                return new ArgumentException("subscriptionId is required").ToValidationError().ToMcpJson();
             }
 
             var resourceGroups = await _azureResourceService.GetResourceGroupsAsync(subscriptionId);
@@ -83,7 +81,7 @@ public class AzureResourceDiscoveryTool
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError($"retrieving resource groups for subscription {subscriptionId}", ex.Message).ToMcpJson();
+            return ex.ToOperationError($"retrieving resource groups for subscription {subscriptionId}").ToMcpJson();
         }
     }
 
@@ -94,7 +92,7 @@ public class AzureResourceDiscoveryTool
         {
             if (string.IsNullOrWhiteSpace(subscriptionId))
             {
-                return ErrorResponseFactory.CreateValidationError("subscriptionId is required").ToMcpJson();
+                return new ArgumentException("subscriptionId is required").ToValidationError().ToMcpJson();
             }
 
             var virtualNetworks = await _azureResourceService.GetVirtualNetworksAsync(subscriptionId, resourceGroupName);
@@ -125,7 +123,7 @@ public class AzureResourceDiscoveryTool
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError($"retrieving virtual networks for subscription {subscriptionId}", ex.Message).ToMcpJson();
+            return ex.ToOperationError($"retrieving virtual networks for subscription {subscriptionId}").ToMcpJson();
         }
     }
 
@@ -136,17 +134,17 @@ public class AzureResourceDiscoveryTool
         {
             if (string.IsNullOrWhiteSpace(subscriptionId))
             {
-                return ErrorResponseFactory.CreateValidationError("subscriptionId is required").ToMcpJson();
+                return new ArgumentException("subscriptionId is required").ToValidationError().ToMcpJson();
             }
 
             if (string.IsNullOrWhiteSpace(resourceGroupName))
             {
-                return ErrorResponseFactory.CreateValidationError("resourceGroupName is required").ToMcpJson();
+                return new ArgumentException("resourceGroupName is required").ToValidationError().ToMcpJson();
             }
 
             if (string.IsNullOrWhiteSpace(virtualNetworkName))
             {
-                return ErrorResponseFactory.CreateValidationError("virtualNetworkName is required").ToMcpJson();
+                return new ArgumentException("virtualNetworkName is required").ToValidationError().ToMcpJson();
             }
 
             var subnets = await _azureResourceService.GetSubnetsAsync(subscriptionId, resourceGroupName, virtualNetworkName);
@@ -180,7 +178,7 @@ public class AzureResourceDiscoveryTool
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError($"retrieving subnets for virtual network {virtualNetworkName}", ex.Message).ToMcpJson();
+            return ex.ToOperationError($"retrieving subnets for virtual network {virtualNetworkName}").ToMcpJson();
         }
     }
 }

@@ -2,9 +2,7 @@ using ModelContextProtocol.Server;
 using System.ComponentModel;
 using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Extensions;
-using DataFactory.MCP.Factories;
 using DataFactory.MCP.Models;
-using System.Text.Json;
 
 namespace DataFactory.MCP.Tools;
 
@@ -49,15 +47,15 @@ public class WorkspacesTool
         }
         catch (UnauthorizedAccessException ex)
         {
-            return ErrorResponseFactory.CreateAuthenticationError(ex.Message).ToMcpJson();
+            return ex.ToAuthenticationError().ToMcpJson();
         }
         catch (HttpRequestException ex)
         {
-            return ErrorResponseFactory.CreateHttpError(ex.Message).ToMcpJson();
+            return ex.ToHttpError().ToMcpJson();
         }
         catch (Exception ex)
         {
-            return ErrorResponseFactory.CreateOperationError("listing workspaces", ex.Message).ToMcpJson();
+            return ex.ToOperationError("listing workspaces").ToMcpJson();
         }
     }
 }

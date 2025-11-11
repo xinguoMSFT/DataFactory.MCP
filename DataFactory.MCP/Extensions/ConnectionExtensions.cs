@@ -7,6 +7,7 @@ namespace DataFactory.MCP.Extensions;
 /// </summary>
 public static class ConnectionExtensions
 {
+
     /// <summary>
     /// Formats a Connection object for MCP API responses.
     /// Provides consistent output format and handles different connection types appropriately.
