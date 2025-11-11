@@ -135,14 +135,17 @@ public class DataflowTool
         [Description("The workspace ID containing the dataflow (required)")] string workspaceId,
         [Description("The dataflow ID to execute the query against (required)")] string dataflowId,
         [Description("The name of the query to execute (required)")] string queryName,
-        [Description("The M (Power Query) language query to execute. This should be a complete M expression that defines the data transformation and source connection.")] string customMashupDocument)
+        [Description("The M (Power Query) language query to execute. Can be either a raw M expression (which will be auto-wrapped) or a complete section document.")] string customMashupDocument)
     {
         try
         {
+            // Auto-wrap the query if it's not already in section format
+            var wrappedQuery = WrapQueryIfNeeded(customMashupDocument, queryName);
+
             var request = new ExecuteDataflowQueryRequest
             {
                 QueryName = queryName,
-                CustomMashupDocument = customMashupDocument
+                CustomMashupDocument = wrappedQuery
             };
 
             var response = await _dataflowService.ExecuteQueryAsync(workspaceId, dataflowId, request);
@@ -195,5 +198,25 @@ public class DataflowTool
         }
     }
 
+    /// <summary>
+    /// Wraps a raw M query in the proper section format if it's not already wrapped
+    /// </summary>
+    private static string WrapQueryIfNeeded(string query, string queryName)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return query;
 
+        // Check if the query already starts with "section" (case-insensitive)
+        var trimmedQuery = query.Trim();
+        if (trimmedQuery.StartsWith("section ", StringComparison.OrdinalIgnoreCase))
+        {
+            // Already in section format, return as-is
+            return query;
+        }
+
+        // Auto-wrap the raw M query in section format
+        return $@"section Section1;
+
+shared {queryName} = {query.TrimEnd()};";
+    }
 }
