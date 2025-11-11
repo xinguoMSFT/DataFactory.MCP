@@ -10,10 +10,12 @@ namespace DataFactory.MCP.Tools;
 public class DataflowTool
 {
     private readonly IFabricDataflowService _dataflowService;
+    private readonly IValidationService _validationService;
 
-    public DataflowTool(IFabricDataflowService dataflowService)
+    public DataflowTool(IFabricDataflowService dataflowService, IValidationService validationService)
     {
         _dataflowService = dataflowService;
+        _validationService = validationService;
     }
 
     [McpServerTool, Description(@"Returns a list of Dataflows from the specified workspace. This API supports pagination.")]
@@ -23,10 +25,7 @@ public class DataflowTool
     {
         try
         {
-            if (string.IsNullOrEmpty(workspaceId))
-            {
-                return "Error: Workspace ID is required.";
-            }
+            _validationService.ValidateRequiredString(workspaceId, nameof(workspaceId));
 
             var response = await _dataflowService.ListDataflowsAsync(workspaceId, continuationToken);
 

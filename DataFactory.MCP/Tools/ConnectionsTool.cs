@@ -12,6 +12,7 @@ public class ConnectionsTool
 {
     private readonly IFabricConnectionService _connectionService;
     private readonly FabricDataSourceConnectionFactory _connectionFactory;
+    private readonly IValidationService _validationService;
 
     public ConnectionsTool(
         IFabricConnectionService connectionService,
@@ -20,6 +21,7 @@ public class ConnectionsTool
     {
         _connectionService = connectionService;
         _connectionFactory = connectionFactory;
+        _validationService = validationService;
     }
 
     [McpServerTool, Description(@"Lists all connections the user has permission for, including on-premises, virtual network and cloud connections")]
@@ -65,10 +67,7 @@ public class ConnectionsTool
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(connectionId))
-            {
-                return Messages.ConnectionIdRequired;
-            }
+            _validationService.ValidateRequiredString(connectionId, nameof(connectionId));
 
             var connection = await _connectionService.GetConnectionAsync(connectionId);
 
@@ -201,7 +200,7 @@ public class ConnectionsTool
             var connection = await _connectionFactory.CreateVNetSqlWorkspaceIdentityAsync(
                 displayName, gatewayId, serverName, databaseName);
 
-            return connection.ToSuccessResponse("VNet gateway SQL connection with workspace identity created successfully").ToMcpJson();
+            return connection.ToCreationSuccessResponse("VNet gateway SQL connection with workspace identity created successfully").ToMcpJson();
         }
         catch (Exception ex)
         {

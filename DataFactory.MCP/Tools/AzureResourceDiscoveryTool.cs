@@ -9,10 +9,12 @@ namespace DataFactory.MCP.Tools;
 public class AzureResourceDiscoveryTool
 {
     private readonly IAzureResourceDiscoveryService _azureResourceService;
+    private readonly IValidationService _validationService;
 
-    public AzureResourceDiscoveryTool(IAzureResourceDiscoveryService azureResourceService)
+    public AzureResourceDiscoveryTool(IAzureResourceDiscoveryService azureResourceService, IValidationService validationService)
     {
         _azureResourceService = azureResourceService;
+        _validationService = validationService;
     }
 
     [McpServerTool, Description(@"Get all Azure subscriptions the authenticated user has access to")]
@@ -52,10 +54,7 @@ public class AzureResourceDiscoveryTool
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(subscriptionId))
-            {
-                return new ArgumentException("subscriptionId is required").ToValidationError().ToMcpJson();
-            }
+            _validationService.ValidateRequiredString(subscriptionId, nameof(subscriptionId));
 
             var resourceGroups = await _azureResourceService.GetResourceGroupsAsync(subscriptionId);
 
@@ -90,10 +89,7 @@ public class AzureResourceDiscoveryTool
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(subscriptionId))
-            {
-                return new ArgumentException("subscriptionId is required").ToValidationError().ToMcpJson();
-            }
+            _validationService.ValidateRequiredString(subscriptionId, nameof(subscriptionId));
 
             var virtualNetworks = await _azureResourceService.GetVirtualNetworksAsync(subscriptionId, resourceGroupName);
 
@@ -132,20 +128,9 @@ public class AzureResourceDiscoveryTool
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(subscriptionId))
-            {
-                return new ArgumentException("subscriptionId is required").ToValidationError().ToMcpJson();
-            }
-
-            if (string.IsNullOrWhiteSpace(resourceGroupName))
-            {
-                return new ArgumentException("resourceGroupName is required").ToValidationError().ToMcpJson();
-            }
-
-            if (string.IsNullOrWhiteSpace(virtualNetworkName))
-            {
-                return new ArgumentException("virtualNetworkName is required").ToValidationError().ToMcpJson();
-            }
+            _validationService.ValidateRequiredString(subscriptionId, nameof(subscriptionId));
+            _validationService.ValidateRequiredString(resourceGroupName, nameof(resourceGroupName));
+            _validationService.ValidateRequiredString(virtualNetworkName, nameof(virtualNetworkName));
 
             var subnets = await _azureResourceService.GetSubnetsAsync(subscriptionId, resourceGroupName, virtualNetworkName);
 

@@ -11,10 +11,12 @@ namespace DataFactory.MCP.Tools;
 public class GatewayTool
 {
     private readonly IFabricGatewayService _gatewayService;
+    private readonly IValidationService _validationService;
 
-    public GatewayTool(IFabricGatewayService gatewayService)
+    public GatewayTool(IFabricGatewayService gatewayService, IValidationService validationService)
     {
         _gatewayService = gatewayService;
+        _validationService = validationService;
     }
 
     [McpServerTool, Description(@"Lists all gateways the user has permission for, including on-premises, on-premises (personal mode), and virtual network gateways")]
@@ -60,10 +62,7 @@ public class GatewayTool
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(gatewayId))
-            {
-                return Messages.GatewayIdRequired;
-            }
+            _validationService.ValidateRequiredString(gatewayId, nameof(gatewayId));
 
             var gateway = await _gatewayService.GetGatewayAsync(gatewayId);
 
@@ -98,42 +97,18 @@ public class GatewayTool
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(displayName))
-            {
-                return new ArgumentException("displayName parameter is required").ToValidationError().ToMcpJson();
-            }
-
-            if (string.IsNullOrWhiteSpace(capacityId))
-            {
-                return new ArgumentException("capacityId parameter is required").ToValidationError().ToMcpJson();
-            }
-
-            if (string.IsNullOrWhiteSpace(subscriptionId))
-            {
-                return new ArgumentException("subscriptionId parameter is required").ToValidationError().ToMcpJson();
-            }
-
-            if (string.IsNullOrWhiteSpace(resourceGroupName))
-            {
-                return new ArgumentException("resourceGroupName parameter is required").ToValidationError().ToMcpJson();
-            }
-
-            if (string.IsNullOrWhiteSpace(virtualNetworkName))
-            {
-                return new ArgumentException("virtualNetworkName parameter is required").ToValidationError().ToMcpJson();
-            }
-
-            if (string.IsNullOrWhiteSpace(subnetName))
-            {
-                return new ArgumentException("subnetName parameter is required").ToValidationError().ToMcpJson();
-            }
+            _validationService.ValidateRequiredString(displayName, nameof(displayName));
+            _validationService.ValidateRequiredString(capacityId, nameof(capacityId));
+            _validationService.ValidateRequiredString(subscriptionId, nameof(subscriptionId));
+            _validationService.ValidateRequiredString(resourceGroupName, nameof(resourceGroupName));
+            _validationService.ValidateRequiredString(virtualNetworkName, nameof(virtualNetworkName));
+            _validationService.ValidateRequiredString(subnetName, nameof(subnetName));
 
             // Validate inactivityMinutesBeforeSleep
             var validValues = new[] { 30, 60, 90, 120, 150, 240, 360, 480, 720, 1440 };
             if (!validValues.Contains(inactivityMinutesBeforeSleep))
             {
-                return new ArgumentException($"inactivityMinutesBeforeSleep must be one of: {string.Join(", ", validValues)}")
-                    .ToValidationError().ToMcpJson();
+                throw new ArgumentException($"inactivityMinutesBeforeSleep must be one of: {string.Join(", ", validValues)}");
             }
 
             var request = new CreateVNetGatewayRequest

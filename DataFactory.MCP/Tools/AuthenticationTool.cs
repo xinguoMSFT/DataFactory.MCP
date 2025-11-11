@@ -9,10 +9,12 @@ namespace DataFactory.MCP.Tools;
 public class AuthenticationTool
 {
     private readonly IAuthenticationService _authService;
+    private readonly IValidationService _validationService;
 
-    public AuthenticationTool(IAuthenticationService authService)
+    public AuthenticationTool(IAuthenticationService authService, IValidationService validationService)
     {
         _authService = authService;
+        _validationService = validationService;
     }
 
     [McpServerTool, Description(@"Authenticate with Azure AD using interactive login")]
@@ -40,12 +42,8 @@ public class AuthenticationTool
     {
         try
         {
-            // Validate parameters
-            if (string.IsNullOrWhiteSpace(applicationId))
-                return Messages.InvalidParameterApplicationIdEmpty;
-
-            if (string.IsNullOrWhiteSpace(clientSecret))
-                return Messages.InvalidParameterClientSecretEmpty;
+            _validationService.ValidateRequiredString(applicationId, nameof(applicationId));
+            _validationService.ValidateRequiredString(clientSecret, nameof(clientSecret));
 
             return await _authService.AuthenticateServicePrincipalAsync(applicationId, clientSecret, tenantId);
         }
