@@ -260,85 +260,16 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
             summary.StructuredSampleData = dataToUse;
         }
 
-        // If Arrow parsing failed, fall back to basic text extraction
+        // If Arrow parsing failed, provide basic fallback information
         if (!arrowInfo.Success)
         {
-            var fallbackSummary = ExtractBasicTextSummary(arrowData);
-            summary.Columns = fallbackSummary.Columns ?? new List<string>();
-            summary.SampleData = fallbackSummary.SampleData ?? new Dictionary<string, List<string>>();
-            summary.EstimatedRowCount = fallbackSummary.EstimatedRowCount;
-        }
-
-        return summary;
-    }
-
-    private static QueryResultSummary ExtractBasicTextSummary(byte[] arrowData)
-    {
-        var summary = new QueryResultSummary();
-
-        try
-        {
-            // Convert bytes to string to look for readable patterns
-            var stringContent = System.Text.Encoding.UTF8.GetString(arrowData);
-
-            // Look for common column names
-            var columns = new List<string>();
-            var commonColumns = new[] { "RoleInstance", "ProcessName", "Message", "Timestamp", "Level" };
-            foreach (var column in commonColumns)
-            {
-                if (stringContent.Contains(column))
-                {
-                    columns.Add(column);
-                }
-            }
-            summary.Columns = columns;
-
-            // Extract sample data
-            var sampleData = new Dictionary<string, List<string>>();
-
-            // Look for role instances
-            var rolePattern = @"vmback_\d+";
-            var roleMatches = System.Text.RegularExpressions.Regex.Matches(stringContent, rolePattern);
-            if (roleMatches.Count > 0)
-            {
-                sampleData["RoleInstance"] = roleMatches.Cast<System.Text.RegularExpressions.Match>()
-                    .Select(m => m.Value).Distinct().Take(3).ToList();
-            }
-
-            // Look for service names
-            var servicePattern = @"Microsoft\.Mashup\.Web\.[A-Za-z.]+";
-            var serviceMatches = System.Text.RegularExpressions.Regex.Matches(stringContent, servicePattern);
-            if (serviceMatches.Count > 0)
-            {
-                sampleData["ProcessName"] = serviceMatches.Cast<System.Text.RegularExpressions.Match>()
-                    .Select(m => m.Value).Distinct().Take(3).ToList();
-            }
-
-            // Look for common error messages
-            var errorMessages = new[] { "Invalid workload hostname", "DataSource requested unhandled application property", "A generic MashupException was caught" };
-            var foundMessages = errorMessages.Where(msg => stringContent.Contains(msg)).Take(3).ToList();
-            if (foundMessages.Any())
-            {
-                sampleData["Message"] = foundMessages;
-            }
-
-            summary.SampleData = sampleData;
-
-            // Rough estimate of row count based on pattern matches
-            var estimatedRows = Math.Max(roleMatches.Count, serviceMatches.Count);
-            if (estimatedRows > 0)
-            {
-                summary.EstimatedRowCount = Math.Min(estimatedRows, 1000); // Cap at reasonable number
-            }
-        }
-        catch (Exception ex)
-        {
-            // If extraction fails, just return basic summary
-            summary.Columns = new List<string> { "Data extraction failed" };
+            summary.Columns = new List<string> { "Data parsing failed" };
             summary.SampleData = new Dictionary<string, List<string>>
             {
-                { "Error", new List<string> { ex.Message } }
+                { "Error", new List<string> { arrowInfo.Error ?? "Unknown Arrow parsing error" } },
+                { "DataSize", new List<string> { $"{arrowData.Length} bytes" } }
             };
+            summary.EstimatedRowCount = 0;
         }
 
         return summary;

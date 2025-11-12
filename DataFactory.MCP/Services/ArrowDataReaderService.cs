@@ -4,7 +4,6 @@ using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Models.Arrow;
 using Microsoft.Extensions.Logging;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace DataFactory.MCP.Services;
 
@@ -13,17 +12,6 @@ namespace DataFactory.MCP.Services;
 /// </summary>
 public class ArrowDataReaderService : IArrowDataReaderService
 {
-    private const int MaxSampleSize = 10;
-    private const int BatchSampleSize = 5;
-    private const int MaxEstimatedRows = 1000;
-    private static readonly string[] CommonColumns = { "RoleInstance", "ProcessName", "Message", "Timestamp", "Level", "Id" };
-    private static readonly string[] CommonErrorMessages = {
-        "Invalid workload hostname",
-        "DataSource requested unhandled application property",
-        "A generic MashupException was caught",
-        "Unable to create a provider context"
-    };
-
     private readonly ILogger<ArrowDataReaderService> _logger;
 
     public ArrowDataReaderService(ILogger<ArrowDataReaderService> logger)
@@ -57,8 +45,8 @@ public class ArrowDataReaderService : IArrowDataReaderService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Arrow parsing failed, falling back to text extraction");
-            return ExtractBasicInfo(arrowData, ex);
+            _logger.LogWarning(ex, "Arrow parsing failed, creating minimal fallback info");
+            return CreateFallbackInfo(ex);
         }
     }
 
@@ -110,7 +98,8 @@ public class ArrowDataReaderService : IArrowDataReaderService
 
     private static Dictionary<string, List<object>> ExtractAllData(List<RecordBatch> batches, List<ArrowColumnInfo>? columns)
     {
-        if (columns == null) return [];
+        if (columns == null || columns.Count == 0)
+            return [];
 
         var allData = columns.ToDictionary(col => col.Name, _ => new List<object>());
 
@@ -122,23 +111,24 @@ public class ArrowDataReaderService : IArrowDataReaderService
         return allData;
     }
 
-    private static Dictionary<string, List<object>> ExtractSampleData(List<RecordBatch> batches, List<ArrowColumnInfo>? columns)
+    private static Dictionary<string, List<object>> ExtractSampleData(List<RecordBatch> batches, List<ArrowColumnInfo>? columns, int maxSampleSize = 10, int maxBatches = 3)
     {
-        if (columns == null) return [];
+        if (columns == null || columns.Count == 0)
+            return [];
 
         var sampleData = columns.ToDictionary(col => col.Name, _ => new List<object>());
 
-        foreach (var batch in batches.Take(3))
+        foreach (var batch in batches.Take(maxBatches))
         {
-            var sampleCount = Math.Min(BatchSampleSize, batch.Length);
+            var sampleCount = Math.Min(5, batch.Length);
             ExtractBatchData(batch, columns, sampleData, sampleCount);
 
             // Limit total samples per column
             foreach (var col in columns)
             {
-                if (sampleData[col.Name].Count > MaxSampleSize)
+                if (sampleData[col.Name].Count > maxSampleSize)
                 {
-                    sampleData[col.Name] = sampleData[col.Name].Take(MaxSampleSize).ToList();
+                    sampleData[col.Name] = sampleData[col.Name].Take(maxSampleSize).ToList();
                 }
             }
         }
@@ -177,84 +167,36 @@ public class ArrowDataReaderService : IArrowDataReaderService
             DoubleArray dbl => dbl.GetValue(index),
             BooleanArray bln => bln.GetValue(index),
             TimestampArray ts => ts.GetTimestamp(index)?.ToString("yyyy-MM-dd HH:mm:ss"),
+            Date32Array dt32 => DateTimeOffset.FromUnixTimeSeconds(dt32.GetValue(index) ?? 0).ToString("yyyy-MM-dd"),
+            Date64Array dt64 => DateTimeOffset.FromUnixTimeMilliseconds(dt64.GetValue(index) ?? 0).ToString("yyyy-MM-dd"),
             Decimal128Array dec => dec.GetValue(index)?.ToString(),
+            Decimal256Array dec256 => dec256.GetValue(index)?.ToString(),
             FloatArray flt => flt.GetValue(index),
-            _ => $"[{array.GetType().Name}] - value at index {index}"
+            Int8Array i8 => i8.GetValue(index),
+            Int16Array i16 => i16.GetValue(index),
+            UInt8Array ui8 => ui8.GetValue(index),
+            UInt16Array ui16 => ui16.GetValue(index),
+            UInt32Array ui32 => ui32.GetValue(index),
+            UInt64Array ui64 => ui64.GetValue(index),
+            BinaryArray bin => Convert.ToBase64String(bin.GetBytes(index).ToArray()),
+            _ => $"[{array.GetType().Name}] - Unsupported type"
         };
 
-    private ArrowDataInfo ExtractBasicInfo(byte[] arrowData, Exception? ex = null)
+    private static ArrowDataInfo CreateFallbackInfo(Exception? ex = null)
     {
-        var info = new ArrowDataInfo
+        return new ArrowDataInfo
         {
             Success = false,
-            Error = ex?.Message,
-            Schema = new ArrowSchemaInfo { Columns = [] },
-            SampleData = []
-        };
-
-        try
-        {
-            var content = Encoding.UTF8.GetString(arrowData);
-            var detectedColumns = DetectColumnsFromText(content, info.Schema.Columns);
-            ExtractSampleDataFromText(content, info.SampleData);
-
-            info.Schema.FieldCount = detectedColumns.Count;
-            info.TotalRows = EstimateRowCount(content);
-        }
-        catch (Exception extractEx)
-        {
-            info.Error = $"Arrow parsing failed: {ex?.Message}. Text extraction failed: {extractEx.Message}";
-        }
-
-        return info;
-    }
-
-    private static List<string> DetectColumnsFromText(string content, List<ArrowColumnInfo> columns)
-    {
-        var detected = new List<string>();
-
-        foreach (var column in CommonColumns.Where(content.Contains))
-        {
-            detected.Add(column);
-            columns.Add(new ArrowColumnInfo
+            Error = ex?.Message ?? "Unknown error during Arrow parsing",
+            Schema = new ArrowSchemaInfo
             {
-                Name = column,
-                DataType = "String",
-                IsNullable = true
-            });
-        }
-
-        return detected;
-    }
-
-    private static void ExtractSampleDataFromText(string content, Dictionary<string, List<object>> sampleData)
-    {
-        ExtractPatternMatches(content, sampleData, "RoleInstance", @"vmback_\d+");
-        ExtractPatternMatches(content, sampleData, "ProcessName", @"Microsoft\.Mashup\.Web\.[A-Za-z.]+");
-
-        var foundMessages = CommonErrorMessages.Where(content.Contains).Take(5).ToList();
-        if (foundMessages.Count != 0)
-        {
-            sampleData["Message"] = foundMessages.Cast<object>().ToList();
-        }
-    }
-
-    private static void ExtractPatternMatches(string content, Dictionary<string, List<object>> sampleData, string key, string pattern)
-    {
-        var matches = Regex.Matches(content, pattern);
-        if (matches.Count > 0)
-        {
-            sampleData[key] = matches.Cast<Match>()
-                .Select(m => (object)m.Value)
-                .Distinct()
-                .Take(5)
-                .ToList();
-        }
-    }
-
-    private static int EstimateRowCount(string content)
-    {
-        var matches = Regex.Matches(content, @"vmback_\d+");
-        return Math.Min(matches.Count, MaxEstimatedRows);
+                FieldCount = 0,
+                Columns = []
+            },
+            SampleData = [],
+            AllData = [],
+            TotalRows = 0,
+            BatchCount = 0
+        };
     }
 }
