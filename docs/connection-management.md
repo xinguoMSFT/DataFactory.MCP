@@ -123,7 +123,7 @@ create_v_net_sql_basic(
 
 #### Parameters
 - `displayName`: Name for the connection
-- `gatewayId`: Virtual network gateway ID (UUID)
+- `gatewayId`: Virtual network gateway ID (UUID) or gateway name
 - `serverName`: SQL Server hostname (can be internal/private)
 - `databaseName`: Database name
 - `username`: SQL authentication username
@@ -145,6 +145,9 @@ create_v_net_sql_basic(
 # Create cloud SQL connection
 > create_cloud_sql_basic displayName="My SQL DB" serverName="server.database.windows.net" databaseName="MyDB" username="myuser" password="mypass"
 
-# Create VNet SQL connection  
+# Create VNet SQL connection using gateway ID
 > create_v_net_sql_basic displayName="Internal SQL" gatewayId="7d3b5733-732d-4bbe-8d17-db6f6fe5d19c" serverName="internal-sql" databaseName="MyDB" username="myuser" password="mypass"
+
+# Create VNet SQL connection using gateway name
+> create_v_net_sql_basic displayName="Internal SQL" gatewayId="My VNet Gateway" serverName="internal-sql" databaseName="MyDB" username="myuser" password="mypass"
 ```
