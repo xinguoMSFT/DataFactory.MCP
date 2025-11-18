@@ -83,6 +83,52 @@ get_connection(connectionId: "a0b9fa12-60f5-4f95-85ca-565d34abcea1")
 }
 ```
 
+### Create Cloud SQL Connection
+
+Create a new cloud SQL connection with basic authentication.
+
+#### Usage
+```
+create_cloud_sql_basic(
+  displayName: "My SQL Connection",
+  serverName: "server.database.windows.net", 
+  databaseName: "MyDatabase",
+  username: "myuser",
+  password: "mypassword"
+)
+```
+
+#### Parameters
+- `displayName`: Name for the connection
+- `serverName`: SQL Server hostname
+- `databaseName`: Database name
+- `username`: SQL authentication username
+- `password`: SQL authentication password
+
+### Create VNet SQL Connection  
+
+Create a new VNet gateway SQL connection with basic authentication.
+
+#### Usage
+```
+create_v_net_sql_basic(
+  displayName: "My VNet SQL Connection",
+  gatewayId: "7d3b5733-732d-4bbe-8d17-db6f6fe5d19c",
+  serverName: "internal-server.local",
+  databaseName: "MyDatabase", 
+  username: "myuser",
+  password: "mypassword"
+)
+```
+
+#### Parameters
+- `displayName`: Name for the connection
+- `gatewayId`: Virtual network gateway ID (UUID)
+- `serverName`: SQL Server hostname (can be internal/private)
+- `databaseName`: Database name
+- `username`: SQL authentication username
+- `password`: SQL authentication password
+
 ## Usage Examples
 
 ### Basic Connection Operations
@@ -95,4 +141,10 @@ get_connection(connectionId: "a0b9fa12-60f5-4f95-85ca-565d34abcea1")
 
 # Get specific connection details by name
 > get details for connection with name Example Cloud Data Source
+
+# Create cloud SQL connection
+> create_cloud_sql_basic displayName="My SQL DB" serverName="server.database.windows.net" databaseName="MyDB" username="myuser" password="mypass"
+
+# Create VNet SQL connection  
+> create_v_net_sql_basic displayName="Internal SQL" gatewayId="7d3b5733-732d-4bbe-8d17-db6f6fe5d19c" serverName="internal-sql" databaseName="MyDB" username="myuser" password="mypass"
 ```
