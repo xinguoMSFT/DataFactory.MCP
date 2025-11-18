@@ -11,7 +11,7 @@ A Model Context Protocol (MCP) server for Microsoft Fabric resource discovery an
 
 - **Azure AD Authentication**: Interactive and service principal authentication
 - **Gateway Management**: List, retrieve, and create Microsoft Fabric gateways (including VNet gateways)
-- **Connection Management**: List and retrieve details for Microsoft Fabric connections
+- **Connection Management**: List, retrieve, and create Microsoft Fabric connections (cloud SQL and VNet gateway SQL)
 - **Workspace Management**: List and retrieve Microsoft Fabric workspaces
 - **Dataflow Management**: List, create, and retrieve Microsoft Fabric dataflows
 - **Capacity Management**: List and retrieve Microsoft Fabric capacities
@@ -23,9 +23,10 @@ A Model Context Protocol (MCP) server for Microsoft Fabric resource discovery an
 
 - **Authentication**: `authenticate_interactive`, `authenticate_service_principal`, `get_authentication_status`, `get_access_token`, `sign_out`
 - **Gateway Management**: `list_gateways`, `get_gateway`, `create_v_net_gateway`
-- **Connection Management**: `list_connections`, `get_connection`
+- **Connection Management**: `list_connections`, `get_connection`, `create_cloud_sql_basic`, `create_v_net_sql_basic`
 - **Workspace Management**: `list_workspaces`
 - **Dataflow Management**: `list_dataflows`, `create_dataflow`
+- **Dataflow Query Execution**: `execute_query` *(Preview)*
 - **Capacity Management**: `list_capacities`
 
 ## Quick Start
