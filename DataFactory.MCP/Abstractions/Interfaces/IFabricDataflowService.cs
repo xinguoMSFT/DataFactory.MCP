@@ -40,5 +40,13 @@ public interface IFabricDataflowService
         string dataflowId,
         ExecuteDataflowQueryRequest request);
 
-
+    /// <summary>
+    /// Gets the decoded definition of a dataflow with human-readable content
+    /// </summary>
+    /// <param name="workspaceId">The workspace ID containing the dataflow</param>
+    /// <param name="dataflowId">The dataflow ID to get the definition for</param>
+    /// <returns>The decoded dataflow definition with readable content</returns>
+    Task<DecodedDataflowDefinition> GetDecodedDataflowDefinitionAsync(
+        string workspaceId,
+        string dataflowId);
 }

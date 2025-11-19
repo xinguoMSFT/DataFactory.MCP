@@ -5,8 +5,18 @@ using DataFactory.MCP.Models.Dataflow.Query;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DataFactory.MCP.Services;
+
+/// <summary>
+/// Internal class for HTTP response deserialization
+/// </summary>
+internal class GetDataflowDefinitionHttpResponse
+{
+    [JsonPropertyName("definition")]
+    public DataflowDefinition Definition { get; set; } = new();
+}
 
 /// <summary>
 /// Service for interacting with Microsoft Fabric Dataflows API
@@ -210,6 +220,94 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
                 Error = $"Query execution error: {ex.Message}",
                 ContentLength = 0
             };
+        }
+    }
+
+    public async Task<DecodedDataflowDefinition> GetDecodedDataflowDefinitionAsync(
+        string workspaceId,
+        string dataflowId)
+    {
+        try
+        {
+            _validationService.ValidateGuid(workspaceId, nameof(workspaceId));
+            _validationService.ValidateGuid(dataflowId, nameof(dataflowId));
+
+            await EnsureAuthenticationAsync();
+
+            var url = $"{BaseUrl}/workspaces/{workspaceId}/items/{dataflowId}/getDefinition";
+            var content = new StringContent("{}", Encoding.UTF8, "application/json");
+
+            Logger.LogInformation("Getting definition for dataflow {DataflowId} in workspace {WorkspaceId}: {Url}",
+                dataflowId, workspaceId, url);
+
+            var response = await HttpClient.PostAsync(url, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Logger.LogError("Failed to get dataflow definition. Status: {StatusCode}, Content: {Content}",
+                    response.StatusCode, errorContent);
+                throw new HttpRequestException($"Failed to get dataflow definition: {response.StatusCode} - {errorContent}");
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var definitionResponse = JsonSerializer.Deserialize<GetDataflowDefinitionHttpResponse>(responseContent, JsonOptions);
+
+            var decoded = new DecodedDataflowDefinition
+            {
+                RawParts = definitionResponse?.Definition?.Parts ?? new List<DataflowDefinitionPart>()
+            }; foreach (var part in decoded.RawParts)
+            {
+                if (string.IsNullOrEmpty(part.Payload)) continue;
+
+                try
+                {
+                    var decodedBytes = Convert.FromBase64String(part.Payload);
+                    var decodedText = Encoding.UTF8.GetString(decodedBytes);
+
+                    switch (part.Path.ToLowerInvariant())
+                    {
+                        case "querymetadata.json":
+                            decoded.QueryMetadata = ParseJsonContent(decodedText);
+                            break;
+                        case "mashup.pq":
+                            decoded.MashupQuery = decodedText;
+                            break;
+                        case ".platform":
+                            decoded.PlatformMetadata = ParseJsonContent(decodedText);
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to decode part {PartPath} for dataflow {DataflowId}",
+                        part.Path, dataflowId);
+                }
+            }
+
+            Logger.LogInformation("Successfully decoded definition for dataflow {DataflowId}", dataflowId);
+            return decoded;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error decoding definition for dataflow {DataflowId} in workspace {WorkspaceId}",
+                dataflowId, workspaceId);
+            throw;
+        }
+    }
+
+    private static JsonElement? ParseJsonContent(string jsonContent)
+    {
+        try
+        {
+            // Parse JSON content into JsonElement for structured access
+            using var document = JsonDocument.Parse(jsonContent);
+            return document.RootElement.Clone();
+        }
+        catch
+        {
+            // If parsing fails, return null
+            return null;
         }
     }
 }
