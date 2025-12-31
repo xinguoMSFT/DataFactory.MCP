@@ -25,16 +25,19 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
 {
     private readonly IValidationService _validationService;
     private readonly IArrowDataReaderService _arrowDataReaderService;
+    private readonly IPowerBICloudDatasourceV2Service _cloudDatasourceService;
 
     public FabricDataflowService(
         ILogger<FabricDataflowService> logger,
         IAuthenticationService authService,
         IValidationService validationService,
-        IArrowDataReaderService arrowDataReaderService)
+        IArrowDataReaderService arrowDataReaderService,
+        IPowerBICloudDatasourceV2Service cloudDatasourceService)
         : base(logger, authService)
     {
         _validationService = validationService;
         _arrowDataReaderService = arrowDataReaderService;
+        _cloudDatasourceService = cloudDatasourceService;
     }
 
     public async Task<ListDataflowsResponse> ListDataflowsAsync(
@@ -361,11 +364,37 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
 
             Logger.LogInformation("Retrieved connection details successfully for connection: {ConnectionId}", connectionId);
 
-            // Step 3: Update queryMetadata.json to include the new connection
+            // Step 3: Get the ClusterId for this connection from the Power BI v2.0 API
+            // This is required for proper credential binding in the dataflow
+            string? clusterId = null;
+            try
+            {
+                clusterId = await _cloudDatasourceService.GetClusterIdForConnectionAsync(connectionId);
+                if (clusterId != null)
+                {
+                    Logger.LogInformation("Successfully retrieved ClusterId {ClusterId} for connection {ConnectionId}", 
+                        clusterId, connectionId);
+                }
+                else
+                {
+                    Logger.LogWarning("Could not find ClusterId for connection {ConnectionId}. " +
+                        "Credential binding may not work correctly.", connectionId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to get ClusterId for connection {ConnectionId}. " +
+                    "Continuing without ClusterId - credential binding may not work correctly.", connectionId);
+            }
+
+            // Step 4: Update queryMetadata.json to include the new connection
             var updatedDefinition = await AddConnectionToDefinitionAsync(
                 currentDefinition.Definition,
                 connectionDetails.Value,
-                connectionId);            // Step 4: Update the dataflow definition via API
+                connectionId,
+                clusterId);
+
+            // Step 5: Update the dataflow definition via API
             var updateResult = await UpdateDataflowDefinitionAsync(workspaceId, dataflowId, updatedDefinition);
 
             Logger.LogInformation("Successfully added connection {ConnectionId} to dataflow {DataflowId}",
@@ -421,7 +450,8 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
     private async Task<DataflowDefinition> AddConnectionToDefinitionAsync(
         DataflowDefinition definition,
         JsonElement connectionDetails,
-        string connectionId)
+        string connectionId,
+        string? clusterId)
     {
         // Find and update the queryMetadata.json part
         var queryMetadataPart = definition.Parts?.FirstOrDefault(p =>
@@ -436,8 +466,8 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
             using var document = JsonDocument.Parse(currentMetadataJson);
             var metadata = document.RootElement;
 
-            // Create updated metadata with new connection
-            var updatedMetadata = CreateUpdatedQueryMetadata(metadata, connectionDetails, connectionId);
+            // Create updated metadata with new connection (including ClusterId if available)
+            var updatedMetadata = CreateUpdatedQueryMetadata(metadata, connectionDetails, connectionId, clusterId);
 
             // Encode updated metadata back to Base64
             var updatedMetadataJson = JsonSerializer.Serialize(updatedMetadata, new JsonSerializerOptions { WriteIndented = true });
@@ -451,7 +481,8 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
     private Dictionary<string, object> CreateUpdatedQueryMetadata(
         JsonElement currentMetadata,
         JsonElement connectionDetails,
-        string connectionId)
+        string connectionId,
+        string? clusterId)
     {
         // Convert the entire JsonElement to a Dictionary for easier manipulation
         var metadataDict = JsonElementToDictionary(currentMetadata);
@@ -464,26 +495,45 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
 
         var connectionsList = metadataDict["connections"] as List<object> ?? new List<object>();
 
+        // Build the connectionId value for the metadata
+        // If we have a ClusterId, use the format: {"ClusterId":"...","DatasourceId":"..."}
+        // This format is required for proper credential binding in Fabric dataflows
+        string connectionIdValue;
+        if (!string.IsNullOrEmpty(clusterId))
+        {
+            // Use the ClusterId + DatasourceId format that Fabric UI uses
+            // This enables proper credential binding for query execution
+            var connectionIdObj = new Dictionary<string, string>
+            {
+                ["ClusterId"] = clusterId,
+                ["DatasourceId"] = connectionId
+            };
+            connectionIdValue = JsonSerializer.Serialize(connectionIdObj);
+        }
+        else
+        {
+            // Fall back to plain connectionId if ClusterId is not available
+            connectionIdValue = connectionId;
+        }
+
         // Add new connection if it doesn't already exist
-        // Use Fabric's expected connectionId format with ClusterId and DatasourceId
-        var fabricConnectionId = $"{{\"DatasourceId\":\"{connectionId}\"}}";
         var newConnection = new Dictionary<string, object>
         {
-            ["connectionId"] = fabricConnectionId,
+            ["connectionId"] = connectionIdValue,
             ["kind"] = GetConnectionKind(connectionDetails),
             ["path"] = GetConnectionPath(connectionDetails)
         };
 
-        // Check if connection already exists (check for both old format and new Fabric format)
+        // Check if connection already exists
         bool connectionExists = connectionsList.Any(conn =>
         {
             if (conn is Dictionary<string, object> dict && dict.ContainsKey("connectionId"))
             {
                 var existingConnectionId = dict["connectionId"]?.ToString();
-                // Check if it matches the plain connectionId or the Fabric format
+                // Check if it matches the connectionId or any format containing it
                 return existingConnectionId == connectionId ||
-                       existingConnectionId == fabricConnectionId ||
-                       existingConnectionId?.Contains($"\"DatasourceId\":\"{connectionId}\"") == true;
+                       existingConnectionId == connectionIdValue ||
+                       existingConnectionId?.Contains(connectionId) == true;
             }
             return false;
         });

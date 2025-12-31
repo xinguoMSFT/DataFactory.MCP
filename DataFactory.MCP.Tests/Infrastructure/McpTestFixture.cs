@@ -51,6 +51,7 @@ public class McpTestFixture : IDisposable
                 services.AddScoped<IValidationService, ValidationService>();
                 services.AddScoped<IAuthenticationService, AuthenticationService>();
                 services.AddScoped<IArrowDataReaderService, ArrowDataReaderService>();
+                services.AddScoped<IPowerBICloudDatasourceV2Service, PowerBICloudDatasourceV2Service>();
                 services.AddScoped<IFabricGatewayService, FabricGatewayService>();
                 services.AddScoped<IFabricConnectionService, FabricConnectionService>();
                 services.AddScoped<IFabricWorkspaceService, FabricWorkspaceService>();
