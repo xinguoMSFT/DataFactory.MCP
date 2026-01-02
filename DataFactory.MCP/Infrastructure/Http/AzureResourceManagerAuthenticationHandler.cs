@@ -3,7 +3,7 @@ using DataFactory.MCP.Models;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 
-namespace DataFactory.MCP.Abstractions;
+namespace DataFactory.MCP.Infrastructure.Http;
 
 /// <summary>
 /// Authentication handler specifically for Azure Resource Manager API with ARM scopes

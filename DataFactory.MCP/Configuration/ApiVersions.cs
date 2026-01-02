@@ -1,4 +1,4 @@
-namespace DataFactory.MCP.Abstractions;
+namespace DataFactory.MCP.Configuration;
 
 /// <summary>
 /// Centralized API version management for all external APIs.

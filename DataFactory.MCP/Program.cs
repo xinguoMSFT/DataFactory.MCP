@@ -2,13 +2,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using DataFactory.MCP.Tools;
-using DataFactory.MCP.Abstractions;
 using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Abstractions.Interfaces.DMTSv2;
 using DataFactory.MCP.Services;
 using DataFactory.MCP.Services.DMTSv2;
 using DataFactory.MCP.Models.Connection.Factories;
 using DataFactory.MCP.Configuration;
+using DataFactory.MCP.Infrastructure.Http;
 
 var builder = Host.CreateApplicationBuilder(args);
 

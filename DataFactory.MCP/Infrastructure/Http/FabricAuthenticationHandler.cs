@@ -3,7 +3,7 @@ using DataFactory.MCP.Models;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 
-namespace DataFactory.MCP.Abstractions;
+namespace DataFactory.MCP.Infrastructure.Http;
 
 /// <summary>
 /// A delegating handler that automatically adds authentication headers to outgoing HTTP requests.

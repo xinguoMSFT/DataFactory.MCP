@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using DataFactory.MCP.Configuration;
 
 namespace DataFactory.MCP.Extensions;
 
@@ -63,7 +64,7 @@ public static class HttpResponseMessageExtensions
             return null;
         }
 
-        return JsonSerializer.Deserialize<T>(content, options ?? Abstractions.JsonSerializerOptionsProvider.FabricApi);
+        return JsonSerializer.Deserialize<T>(content, options ?? JsonSerializerOptionsProvider.FabricApi);
     }
 
     /// <summary>
@@ -94,7 +95,7 @@ public static class HttpResponseMessageExtensions
             return defaultValue;
         }
 
-        return JsonSerializer.Deserialize<T>(content, options ?? Abstractions.JsonSerializerOptionsProvider.FabricApi)
+        return JsonSerializer.Deserialize<T>(content, options ?? JsonSerializerOptionsProvider.FabricApi)
             ?? defaultValue;
     }
 
@@ -152,7 +153,7 @@ public static class HttpResponseMessageExtensions
         }
 
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        var value = JsonSerializer.Deserialize<T>(content, options ?? Abstractions.JsonSerializerOptionsProvider.FabricApi);
+        var value = JsonSerializer.Deserialize<T>(content, options ?? JsonSerializerOptionsProvider.FabricApi);
         return (true, value, null);
     }
 

@@ -1,4 +1,4 @@
-using DataFactory.MCP.Abstractions;
+using DataFactory.MCP.Configuration;
 using System.Text.Json;
 
 namespace DataFactory.MCP.Extensions;

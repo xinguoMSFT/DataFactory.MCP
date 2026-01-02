@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using DataFactory.MCP.Models.Connection;
 using DataFactory.MCP.Models.Gateway;
 
-namespace DataFactory.MCP.Abstractions;
+namespace DataFactory.MCP.Configuration;
 
 /// <summary>
 /// Provides centralized, reusable JsonSerializerOptions instances for consistent JSON serialization.

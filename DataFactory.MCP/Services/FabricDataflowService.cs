@@ -1,6 +1,7 @@
 using DataFactory.MCP.Abstractions;
 using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Abstractions.Interfaces.DMTSv2;
+using DataFactory.MCP.Infrastructure.Http;
 using DataFactory.MCP.Models.Dataflow;
 using DataFactory.MCP.Models.Dataflow.Definition;
 using DataFactory.MCP.Models.Dataflow.Query;

@@ -1,4 +1,4 @@
-namespace DataFactory.MCP.Abstractions;
+namespace DataFactory.MCP.Configuration;
 
 /// <summary>
 /// Constants for named HttpClient instances used throughout the application.

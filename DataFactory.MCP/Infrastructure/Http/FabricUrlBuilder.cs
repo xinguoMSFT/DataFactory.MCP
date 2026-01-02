@@ -1,4 +1,6 @@
-namespace DataFactory.MCP.Abstractions;
+using DataFactory.MCP.Configuration;
+
+namespace DataFactory.MCP.Infrastructure.Http;
 
 /// <summary>
 /// Centralized URL builder for Fabric API endpoints providing consistent URL construction
