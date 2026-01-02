@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DataFactory.MCP.Models.Connection;
+using DataFactory.MCP.Models.Gateway;
 
 namespace DataFactory.MCP.Abstractions;
 
@@ -13,12 +15,20 @@ public static class JsonSerializerOptionsProvider
     /// <summary>
     /// Options for serializing/deserializing Fabric API payloads.
     /// Uses camelCase naming, ignores null values, and supports enum serialization as strings.
+    /// Includes all polymorphic converters for Fabric types (Connection, Gateway, Credentials, etc.).
     /// </summary>
     public static JsonSerializerOptions FabricApi { get; } = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new JsonStringEnumConverter() }
+        Converters =
+        {
+            new JsonStringEnumConverter(),
+            new ConnectionJsonConverter(),
+            new CredentialsJsonConverter(),
+            new ConnectionDetailsParameterJsonConverter(),
+            new GatewayJsonConverter()
+        }
     };
 
     /// <summary>

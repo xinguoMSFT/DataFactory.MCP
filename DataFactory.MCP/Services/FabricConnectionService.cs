@@ -19,12 +19,6 @@ public class FabricConnectionService : FabricServiceBase, IFabricConnectionServi
         IValidationService validationService)
         : base(httpClientFactory, logger, validationService)
     {
-        // Add the custom connection converter to handle polymorphic deserialization
-        JsonOptions.Converters.Add(new ConnectionJsonConverter());
-        // Add the credentials converter for create requests
-        JsonOptions.Converters.Add(new CredentialsJsonConverter());
-        // Add the connection details parameter converter
-        JsonOptions.Converters.Add(new ConnectionDetailsParameterJsonConverter());
     }
 
     public async Task<ListConnectionsResponse> ListConnectionsAsync(string? continuationToken = null)
