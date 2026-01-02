@@ -25,6 +25,8 @@ internal class GetDataflowDefinitionHttpResponse
 /// </summary>
 public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
 {
+    private const string ArrowContentType = "application/octet-stream";
+
     private readonly IArrowDataReaderService _arrowDataReaderService;
     private readonly IGatewayClusterDatasourceService _cloudDatasourceService;
     private readonly IDataflowDefinitionProcessor _definitionProcessor;
@@ -118,7 +120,6 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
                 request.QueryName, dataflowId, workspaceId);
 
             var responseData = await PostAsBytesAsync(endpoint, request);
-            var contentType = "application/octet-stream"; // Arrow format
             var contentLength = responseData.Length;
 
             Logger.LogInformation("Successfully executed query '{QueryName}' on dataflow {DataflowId}. Response: {ContentLength} bytes",
@@ -130,7 +131,7 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
             return new ExecuteDataflowQueryResponse
             {
                 Data = responseData,
-                ContentType = contentType,
+                ContentType = ArrowContentType,
                 ContentLength = contentLength,
                 Success = true,
                 Summary = summary,
