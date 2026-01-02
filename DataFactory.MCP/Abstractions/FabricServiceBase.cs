@@ -132,6 +132,64 @@ public abstract class FabricServiceBase : IDisposable
         }
     }
 
+    /// <summary>
+    /// Posts a request and returns the response as a byte array (for binary responses like Arrow format)
+    /// </summary>
+    protected async Task<byte[]> PostAsBytesAsync(string endpoint, object request)
+    {
+        await EnsureAuthenticationAsync();
+
+        var url = $"{BaseUrl}/{endpoint}";
+        Logger.LogInformation("Posting to: {Url}", url);
+
+        var jsonContent = JsonSerializer.Serialize(request, JsonOptions);
+        var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+        var response = await HttpClient.PostAsync(url, content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadAsByteArrayAsync();
+        }
+        else
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            Logger.LogError("API POST request failed. Status: {StatusCode}, Content: {Content}",
+                response.StatusCode, errorContent);
+
+            throw new HttpRequestException($"API POST request failed: {response.StatusCode} - {errorContent}");
+        }
+    }
+
+    /// <summary>
+    /// Posts a request expecting no content response (204). Returns true on success, false on failure.
+    /// </summary>
+    protected async Task<bool> PostNoContentAsync(string endpoint, object request)
+    {
+        await EnsureAuthenticationAsync();
+
+        var url = $"{BaseUrl}/{endpoint}";
+        Logger.LogInformation("Posting to: {Url}", url);
+
+        var jsonContent = JsonSerializer.Serialize(request, JsonOptions);
+        var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+        var response = await HttpClient.PostAsync(url, content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+        else
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            Logger.LogError("API POST request failed. Status: {StatusCode}, Content: {Content}",
+                response.StatusCode, errorContent);
+
+            return false;
+        }
+    }
+
     public void Dispose()
     {
         HttpClient?.Dispose();

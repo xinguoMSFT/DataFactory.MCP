@@ -117,22 +117,7 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
             Logger.LogInformation("Executing query '{QueryName}' on dataflow {DataflowId} in workspace {WorkspaceId}",
                 request.QueryName, dataflowId, workspaceId);
 
-            // Handle binary response directly since base PostAsync doesn't support byte[] return type
-            var jsonContent = JsonSerializer.Serialize(request, JsonOptions);
-            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-            var url = $"{BaseUrl}/{endpoint}";
-            Logger.LogInformation("Posting to: {Url}", url);
-
-            var response = await HttpClient.PostAsync(url, content);
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Logger.LogError("Failed to execute query. Status: {StatusCode}, Content: {Content}",
-                    response.StatusCode, errorContent);
-                throw new HttpRequestException($"Failed to execute query: {response.StatusCode} - {errorContent}");
-            }
-
-            var responseData = await response.Content.ReadAsByteArrayAsync();
+            var responseData = await PostAsBytesAsync(endpoint, request);
             var contentType = "application/octet-stream"; // Arrow format
             var contentLength = responseData.Length;
 
@@ -328,35 +313,14 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
 
             Logger.LogInformation("Updating dataflow definition for {DataflowId}", dataflowId);
 
-            try
+            var success = await PostNoContentAsync(endpoint, request);
+
+            if (success)
             {
-
-                var jsonContent = JsonSerializer.Serialize(request, JsonOptions);
-                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-                var url = $"{BaseUrl}/{endpoint}";
-                Logger.LogInformation("Posting to: {Url}", url);
-
-                var response = await HttpClient.PostAsync(url, content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    // Fabric API returns 204 No Content on successful update - no response body to deserialize
-                    Logger.LogInformation("Successfully updated dataflow definition for {DataflowId}", dataflowId);
-                    return true;
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    Logger.LogError("Failed to update dataflow definition. Status: {StatusCode}, Content: {Content}",
-                        response.StatusCode, errorContent);
-                    return false;
-                }
+                Logger.LogInformation("Successfully updated dataflow definition for {DataflowId}", dataflowId);
             }
-            catch (HttpRequestException ex)
-            {
-                Logger.LogError("Failed to update dataflow definition: {Error}", ex.Message);
-                return false;
-            }
+
+            return success;
         }
         catch (Exception ex)
         {
