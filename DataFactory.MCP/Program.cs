@@ -3,7 +3,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using DataFactory.MCP.Tools;
 using DataFactory.MCP.Abstractions.Interfaces;
+using DataFactory.MCP.Abstractions.Interfaces.DMTSv2;
 using DataFactory.MCP.Services;
+using DataFactory.MCP.Services.DMTSv2;
 using DataFactory.MCP.Models.Connection.Factories;
 using DataFactory.MCP.Configuration;
 
@@ -22,7 +24,7 @@ builder.Services
     .AddSingleton<IValidationService, ValidationService>()
     .AddSingleton<IAuthenticationService, AuthenticationService>()
     .AddSingleton<IArrowDataReaderService, ArrowDataReaderService>()
-    .AddSingleton<IPowerBICloudDatasourceV2Service, PowerBICloudDatasourceV2Service>()
+    .AddSingleton<IGatewayClusterDatasourceService, GatewayClusterDatasourceService>()
     .AddSingleton<IDataTransformationService, DataTransformationService>()
     .AddSingleton<IDataflowDefinitionProcessor, DataflowDefinitionProcessor>()
     .AddSingleton<IFabricGatewayService, FabricGatewayService>()
