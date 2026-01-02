@@ -1,5 +1,6 @@
 using DataFactory.MCP.Abstractions;
 using DataFactory.MCP.Abstractions.Interfaces;
+using DataFactory.MCP.Extensions;
 using DataFactory.MCP.Models.Azure;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
@@ -38,18 +39,11 @@ public class AzureResourceDiscoveryService : IAzureResourceDiscoveryService
                 .Build();
 
             var response = await _httpClient.GetAsync(url);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get subscriptions. Status: {StatusCode}, Content: {Content}",
-                    response.StatusCode, await response.Content.ReadAsStringAsync());
-                return new List<AzureSubscription>();
-            }
+            var subscriptionsResponse = await response.ReadAsJsonOrDefaultAsync(
+                new AzureSubscriptionsResponse(), JsonOptions);
 
-            var content = await response.Content.ReadAsStringAsync();
-            var subscriptionsResponse = JsonSerializer.Deserialize<AzureSubscriptionsResponse>(content, JsonOptions);
-
-            _logger.LogInformation("Successfully retrieved {Count} subscriptions", subscriptionsResponse?.Value?.Count ?? 0);
-            return subscriptionsResponse?.Value ?? new List<AzureSubscription>();
+            _logger.LogInformation("Successfully retrieved {Count} subscriptions", subscriptionsResponse.Value?.Count ?? 0);
+            return subscriptionsResponse.Value ?? new List<AzureSubscription>();
         }
         catch (Exception ex)
         {
@@ -70,18 +64,11 @@ public class AzureResourceDiscoveryService : IAzureResourceDiscoveryService
                 .Build();
 
             var response = await _httpClient.GetAsync(url);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get resource groups. Status: {StatusCode}, Content: {Content}",
-                    response.StatusCode, await response.Content.ReadAsStringAsync());
-                return new List<AzureResourceGroup>();
-            }
+            var resourceGroupsResponse = await response.ReadAsJsonOrDefaultAsync(
+                new AzureResourceGroupsResponse(), JsonOptions);
 
-            var content = await response.Content.ReadAsStringAsync();
-            var resourceGroupsResponse = JsonSerializer.Deserialize<AzureResourceGroupsResponse>(content, JsonOptions);
-
-            _logger.LogInformation("Successfully retrieved {Count} resource groups", resourceGroupsResponse?.Value?.Count ?? 0);
-            return resourceGroupsResponse?.Value ?? new List<AzureResourceGroup>();
+            _logger.LogInformation("Successfully retrieved {Count} resource groups", resourceGroupsResponse.Value?.Count ?? 0);
+            return resourceGroupsResponse.Value ?? new List<AzureResourceGroup>();
         }
         catch (Exception ex)
         {
@@ -109,18 +96,11 @@ public class AzureResourceDiscoveryService : IAzureResourceDiscoveryService
             var url = urlBuilder.WithApiVersion("2023-04-01").Build();
 
             var response = await _httpClient.GetAsync(url);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get virtual networks. Status: {StatusCode}, Content: {Content}",
-                    response.StatusCode, await response.Content.ReadAsStringAsync());
-                return new List<AzureVirtualNetwork>();
-            }
+            var virtualNetworksResponse = await response.ReadAsJsonOrDefaultAsync(
+                new AzureVirtualNetworksResponse(), JsonOptions);
 
-            var content = await response.Content.ReadAsStringAsync();
-            var virtualNetworksResponse = JsonSerializer.Deserialize<AzureVirtualNetworksResponse>(content, JsonOptions);
-
-            _logger.LogInformation("Successfully retrieved {Count} virtual networks", virtualNetworksResponse?.Value?.Count ?? 0);
-            return virtualNetworksResponse?.Value ?? new List<AzureVirtualNetwork>();
+            _logger.LogInformation("Successfully retrieved {Count} virtual networks", virtualNetworksResponse.Value?.Count ?? 0);
+            return virtualNetworksResponse.Value ?? new List<AzureVirtualNetwork>();
         }
         catch (Exception ex)
         {
@@ -142,18 +122,11 @@ public class AzureResourceDiscoveryService : IAzureResourceDiscoveryService
                 .Build();
 
             var response = await _httpClient.GetAsync(url);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get subnets. Status: {StatusCode}, Content: {Content}",
-                    response.StatusCode, await response.Content.ReadAsStringAsync());
-                return new List<AzureSubnet>();
-            }
+            var subnetsResponse = await response.ReadAsJsonOrDefaultAsync(
+                new AzureSubnetsResponse(), JsonOptions);
 
-            var content = await response.Content.ReadAsStringAsync();
-            var subnetsResponse = JsonSerializer.Deserialize<AzureSubnetsResponse>(content, JsonOptions);
-
-            _logger.LogInformation("Successfully retrieved {Count} subnets", subnetsResponse?.Value?.Count ?? 0);
-            return subnetsResponse?.Value ?? new List<AzureSubnet>();
+            _logger.LogInformation("Successfully retrieved {Count} subnets", subnetsResponse.Value?.Count ?? 0);
+            return subnetsResponse.Value ?? new List<AzureSubnet>();
         }
         catch (Exception ex)
         {

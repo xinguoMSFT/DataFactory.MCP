@@ -1,8 +1,8 @@
 using DataFactory.MCP.Abstractions;
 using DataFactory.MCP.Abstractions.Interfaces.DMTSv2;
+using DataFactory.MCP.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace DataFactory.MCP.Services.DMTSv2;
@@ -78,17 +78,7 @@ public class GatewayClusterDatasourceService : IGatewayClusterDatasourceService
         _logger.LogDebug("Fetching cloud datasources from Power BI v2.0 API");
 
         var response = await _httpClient.GetAsync(GatewayClusterDatasourcesUrl);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogError("Failed to get cloud datasources. Status: {StatusCode}, Content: {Content}",
-                response.StatusCode, errorContent);
-            throw new HttpRequestException($"Failed to get cloud datasources: {response.StatusCode} - {errorContent}");
-        }
-
-        var content = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<GatewayClusterDatasourcesResponse>(content, JsonSerializerOptionsProvider.FabricApi);
+        var result = await response.ReadAsJsonAsync<GatewayClusterDatasourcesResponse>(JsonSerializerOptionsProvider.FabricApi);
 
         var datasources = result?.Value ?? new List<CloudDatasourceInfo>();
 

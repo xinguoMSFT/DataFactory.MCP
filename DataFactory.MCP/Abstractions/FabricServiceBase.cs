@@ -1,8 +1,8 @@
 using DataFactory.MCP.Abstractions.Interfaces;
+using DataFactory.MCP.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace DataFactory.MCP.Abstractions;
 
@@ -49,20 +49,7 @@ public abstract class FabricServiceBase
         Logger.LogInformation("Fetching from: {Url}", url);
 
         var response = await HttpClient.GetAsync(url);
-
-        if (response.IsSuccessStatusCode)
-        {
-            var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(content, JsonOptions);
-        }
-        else
-        {
-            var errorContent = await response.Content.ReadAsStringAsync();
-            Logger.LogError("API request failed. Status: {StatusCode}, Content: {Content}",
-                response.StatusCode, errorContent);
-
-            throw new HttpRequestException($"API request failed: {response.StatusCode} - {errorContent}");
-        }
+        return await response.ReadAsJsonAsync<T>(JsonOptions);
     }
 
     protected async Task<T?> PostAsync<T>(string endpoint, object request) where T : class
@@ -72,25 +59,11 @@ public abstract class FabricServiceBase
             .Build();
         Logger.LogInformation("Posting to: {Url}", url);
 
-        // Serialize object to JSON content
         var jsonContent = JsonSerializer.Serialize(request, JsonOptions);
         var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
         var response = await HttpClient.PostAsync(url, content);
-
-        if (response.IsSuccessStatusCode)
-        {
-            var responseContent = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(responseContent, JsonOptions);
-        }
-        else
-        {
-            var errorContent = await response.Content.ReadAsStringAsync();
-            Logger.LogError("API POST request failed. Status: {StatusCode}, Content: {Content}",
-                response.StatusCode, errorContent);
-
-            throw new HttpRequestException($"API POST request failed: {response.StatusCode} - {errorContent}");
-        }
+        return await response.ReadAsJsonAsync<T>(JsonOptions);
     }
 
     /// <summary>
@@ -107,23 +80,12 @@ public abstract class FabricServiceBase
         var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
         var response = await HttpClient.PostAsync(url, content);
-
-        if (response.IsSuccessStatusCode)
-        {
-            return await response.Content.ReadAsByteArrayAsync();
-        }
-        else
-        {
-            var errorContent = await response.Content.ReadAsStringAsync();
-            Logger.LogError("API POST request failed. Status: {StatusCode}, Content: {Content}",
-                response.StatusCode, errorContent);
-
-            throw new HttpRequestException($"API POST request failed: {response.StatusCode} - {errorContent}");
-        }
+        return await response.ReadAsBytesAsync();
     }
 
     /// <summary>
     /// Posts a request expecting no content response (204). Returns true on success, false on failure.
+    /// Logs errors but does not throw on failure.
     /// </summary>
     protected async Task<bool> PostNoContentAsync(string endpoint, object request)
     {
@@ -141,13 +103,10 @@ public abstract class FabricServiceBase
         {
             return true;
         }
-        else
-        {
-            var errorContent = await response.Content.ReadAsStringAsync();
-            Logger.LogError("API POST request failed. Status: {StatusCode}, Content: {Content}",
-                response.StatusCode, errorContent);
 
-            return false;
-        }
+        var (_, _, error) = await response.TryReadAsJsonAsync<object>(JsonOptions);
+        Logger.LogError("API POST request failed. Status: {StatusCode}, Content: {Content}",
+            error?.StatusCode, error?.ResponseContent);
+        return false;
     }
 }

@@ -1,5 +1,6 @@
 using DataFactory.MCP.Abstractions;
 using DataFactory.MCP.Abstractions.Interfaces;
+using DataFactory.MCP.Extensions;
 using DataFactory.MCP.Models.Workspace;
 using Microsoft.Extensions.Logging;
 
@@ -36,23 +37,10 @@ public class FabricWorkspaceService : FabricServiceBase, IFabricWorkspaceService
             Logger.LogInformation("Fetching workspaces from: {Url}", url);
 
             var response = await HttpClient.GetAsync(url);
+            var workspacesResponse = await response.ReadAsJsonAsync<ListWorkspacesResponse>(JsonOptions);
 
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var workspacesResponse = System.Text.Json.JsonSerializer.Deserialize<ListWorkspacesResponse>(content, JsonOptions);
-
-                Logger.LogInformation("Successfully retrieved {Count} workspaces", workspacesResponse?.Value?.Count ?? 0);
-                return workspacesResponse ?? new ListWorkspacesResponse();
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Logger.LogError("API request failed. Status: {StatusCode}, Content: {Content}",
-                    response.StatusCode, errorContent);
-
-                throw new HttpRequestException($"API request failed: {response.StatusCode} - {errorContent}");
-            }
+            Logger.LogInformation("Successfully retrieved {Count} workspaces", workspacesResponse?.Value?.Count ?? 0);
+            return workspacesResponse ?? new ListWorkspacesResponse();
         }
         catch (Exception ex)
         {
