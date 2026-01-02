@@ -44,8 +44,8 @@ public class ConnectionsToolIntegrationTests : FabricToolIntegrationTestBase
     [Fact]
     public async Task GetConnectionAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
     {
-        // Arrange
-        var testConnectionId = "test-connection-id";
+        // Arrange - use valid GUID format so validation passes and auth is checked
+        var testConnectionId = "00000000-0000-0000-0000-000000000001";
 
         // Act
         var result = await _connectionsTool.GetConnectionAsync(testConnectionId);
@@ -117,13 +117,28 @@ public class ConnectionsToolIntegrationTests : FabricToolIntegrationTestBase
 
         Skip.IfNot(isAuthenticated, "Skipping authenticated test - no valid credentials available");
 
-        var testConnectionId = "test-connection-id-12345";
+        // Use a valid GUID format that doesn't exist in the system
+        var testConnectionId = "00000000-0000-0000-0000-000000000001";
 
         // Act
         var result = await _connectionsTool.GetConnectionAsync(testConnectionId);
 
         // Assert
         AssertOneItemResult("Connection", testConnectionId, result);
+    }
+
+    [Fact]
+    public async Task GetConnectionAsync_WithInvalidGuidFormat_ShouldReturnValidationError()
+    {
+        // Arrange - invalid GUID format
+        var testConnectionId = "test-connection-id-12345";
+
+        // Act
+        var result = await _connectionsTool.GetConnectionAsync(testConnectionId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("ValidationError", result);
     }
 
     #endregion

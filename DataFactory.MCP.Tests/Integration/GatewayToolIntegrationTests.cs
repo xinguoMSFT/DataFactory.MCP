@@ -90,9 +90,9 @@ public class GatewayToolIntegrationTests : FabricToolIntegrationTestBase
     }
 
     [SkippableTheory]
-    [InlineData("non-existent-gateway-id")]
-    [InlineData("invalid-guid-format")]
-    [InlineData("test-gateway-that-does-not-exist")]
+    [InlineData("00000000-0000-0000-0000-000000000001")] // Valid GUID format but non-existent
+    [InlineData("12345678-1234-1234-1234-123456789012")] // Another valid GUID format but non-existent
+    [InlineData("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")] // Another valid GUID format but non-existent
     public async Task GetGatewayAsync_WithAuthentication_AndNonExistentId_ShouldReturnNotFoundMessage(string gatewayId)
     {
         // Arrange - Try to authenticate
@@ -105,6 +105,20 @@ public class GatewayToolIntegrationTests : FabricToolIntegrationTestBase
 
         // Assert
         AssertOneItemResult("Gateway", gatewayId, result);
+    }
+
+    [Theory]
+    [InlineData("non-existent-gateway-id")]
+    [InlineData("invalid-guid-format")]
+    [InlineData("test-gateway-that-does-not-exist")]
+    public async Task GetGatewayAsync_WithInvalidGuidFormat_ShouldReturnValidationError(string gatewayId)
+    {
+        // Act
+        var result = await _gatewayTool.GetGatewayAsync(gatewayId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("ValidationError", result);
     }
 
     [Fact]

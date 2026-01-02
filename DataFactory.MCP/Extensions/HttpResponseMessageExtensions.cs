@@ -22,6 +22,11 @@ public class FabricApiException : HttpRequestException
 
     public bool IsRateLimited => StatusCode == HttpStatusCode.TooManyRequests;
     public bool IsUnauthorized => StatusCode == HttpStatusCode.Unauthorized;
+    public bool IsForbidden => StatusCode == HttpStatusCode.Forbidden;
+    /// <summary>
+    /// Returns true if the error is an authentication/authorization error (401 or 403)
+    /// </summary>
+    public bool IsAuthenticationError => IsUnauthorized || IsForbidden;
     public bool IsNotFound => StatusCode == HttpStatusCode.NotFound;
     public bool IsTransient => StatusCode is HttpStatusCode.TooManyRequests
         or HttpStatusCode.ServiceUnavailable

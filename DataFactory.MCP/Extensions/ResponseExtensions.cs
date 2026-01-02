@@ -69,10 +69,27 @@ public static class ResponseExtensions
     }
 
     /// <summary>
-    /// Converts an HttpRequestException to a standardized HTTP error response
+    /// Converts an HttpRequestException to a standardized HTTP error response.
+    /// Special handling for FabricApiException to provide more specific error messages.
     /// </summary>
     public static McpHttpErrorResponse ToHttpError(this HttpRequestException ex)
     {
+        // Handle FabricApiException with more specific error information
+        if (ex is FabricApiException fabricEx)
+        {
+            if (fabricEx.IsAuthenticationError)
+            {
+                return new McpHttpErrorResponse($"Authentication error: {Messages.AuthenticationRequired}");
+            }
+
+            if (fabricEx.IsRateLimited && fabricEx.RetryAfter.HasValue)
+            {
+                return new McpHttpErrorResponse($"Rate limited. Please retry after {fabricEx.RetryAfter.Value.TotalSeconds:F0} seconds.");
+            }
+
+            return new McpHttpErrorResponse(fabricEx.Message);
+        }
+
         return new McpHttpErrorResponse(string.Format(Messages.ApiRequestFailedTemplate, ex.Message));
     }
 
