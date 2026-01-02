@@ -1,3 +1,4 @@
+using DataFactory.MCP.Abstractions;
 using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Models.Connection;
 using DataFactory.MCP.Models.Dataflow;
@@ -85,7 +86,7 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
             var updatedMetadata = CreateUpdatedQueryMetadata(metadata, connection, connectionId, clusterId);
 
             // Encode updated metadata back to Base64
-            var updatedMetadataJson = JsonSerializer.Serialize(updatedMetadata, new JsonSerializerOptions { WriteIndented = true });
+            var updatedMetadataJson = JsonSerializer.Serialize(updatedMetadata, JsonSerializerOptionsProvider.Indented);
             var updatedBytes = Encoding.UTF8.GetBytes(updatedMetadataJson);
             queryMetadataPart.Payload = Convert.ToBase64String(updatedBytes);
         }

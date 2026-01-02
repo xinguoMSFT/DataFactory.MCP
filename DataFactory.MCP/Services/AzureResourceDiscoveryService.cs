@@ -16,10 +16,7 @@ public class AzureResourceDiscoveryService : IAzureResourceDiscoveryService
     private readonly HttpClient _httpClient;
     private readonly ILogger<AzureResourceDiscoveryService> _logger;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
+    private static JsonSerializerOptions JsonOptions => JsonSerializerOptionsProvider.CaseInsensitive;
 
     public AzureResourceDiscoveryService(
         IHttpClientFactory httpClientFactory,

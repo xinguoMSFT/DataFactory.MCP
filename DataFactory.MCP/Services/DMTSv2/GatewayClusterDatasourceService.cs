@@ -22,7 +22,6 @@ public class GatewayClusterDatasourceService : IGatewayClusterDatasourceService
 
     private readonly ILogger<GatewayClusterDatasourceService> _logger;
     private readonly HttpClient _httpClient;
-    private readonly JsonSerializerOptions _jsonOptions;
 
     // Cache for gateway cluster datasources to avoid repeated API calls
     private List<CloudDatasourceInfo>? _cachedDatasources;
@@ -35,12 +34,6 @@ public class GatewayClusterDatasourceService : IGatewayClusterDatasourceService
     {
         _httpClient = httpClientFactory.CreateClient(HttpClientNames.PowerBiV2Api);
         _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            Converters = { new JsonStringEnumConverter() }
-        };
     }
 
     /// <inheritdoc />
@@ -95,7 +88,7 @@ public class GatewayClusterDatasourceService : IGatewayClusterDatasourceService
         }
 
         var content = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<GatewayClusterDatasourcesResponse>(content, _jsonOptions);
+        var result = JsonSerializer.Deserialize<GatewayClusterDatasourcesResponse>(content, JsonSerializerOptionsProvider.FabricApi);
 
         var datasources = result?.Value ?? new List<CloudDatasourceInfo>();
 

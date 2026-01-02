@@ -16,7 +16,7 @@ public abstract class FabricServiceBase
     protected readonly HttpClient HttpClient;
     protected readonly ILogger Logger;
     protected readonly IValidationService ValidationService;
-    protected readonly JsonSerializerOptions JsonOptions;
+    protected static JsonSerializerOptions JsonOptions => JsonSerializerOptionsProvider.FabricApi;
 
     protected FabricServiceBase(
         IHttpClientFactory httpClientFactory,
@@ -26,13 +26,6 @@ public abstract class FabricServiceBase
         HttpClient = httpClientFactory.CreateClient(HttpClientNames.FabricApi);
         Logger = logger;
         ValidationService = validationService;
-
-        JsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            Converters = { new JsonStringEnumConverter() }
-        };
     }
 
     /// <summary>
