@@ -12,15 +12,6 @@ using System.Text.Json.Serialization;
 namespace DataFactory.MCP.Services;
 
 /// <summary>
-/// Internal class for HTTP response deserialization
-/// </summary>
-internal class GetDataflowDefinitionHttpResponse
-{
-    [JsonPropertyName("definition")]
-    public DataflowDefinition Definition { get; set; } = new();
-}
-
-/// <summary>
 /// Service for interacting with Microsoft Fabric Dataflows API
 /// </summary>
 public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
