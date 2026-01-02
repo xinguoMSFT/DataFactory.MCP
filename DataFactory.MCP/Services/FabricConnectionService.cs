@@ -4,13 +4,12 @@ using DataFactory.MCP.Models.Connection;
 using DataFactory.MCP.Models.Connection.Create;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
-using System.Text.Json;
-using System.Text;
 
 namespace DataFactory.MCP.Services;
 
 /// <summary>
-/// Service for interacting with Microsoft Fabric Connections API
+/// Service for interacting with Microsoft Fabric Connections API.
+/// Authentication is handled automatically by FabricAuthenticationHandler.
 /// </summary>
 public class FabricConnectionService : FabricServiceBase, IFabricConnectionService
 {
@@ -47,6 +46,8 @@ public class FabricConnectionService : FabricServiceBase, IFabricConnectionServi
     {
         try
         {
+            ValidateGuids((connectionId, nameof(connectionId)));
+
             // The Fabric API doesn't have a direct get connection by ID endpoint,
             // so we'll list all connections and find the specific one
             var allConnections = await ListConnectionsAsync();

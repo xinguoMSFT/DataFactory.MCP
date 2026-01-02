@@ -3,13 +3,12 @@ using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Models.Gateway;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
-using System.Text;
-using System.Text.Json;
 
 namespace DataFactory.MCP.Services;
 
 /// <summary>
-/// Service for interacting with Microsoft Fabric Gateways API
+/// Service for interacting with Microsoft Fabric Gateways API.
+/// Authentication is handled automatically by FabricAuthenticationHandler.
 /// </summary>
 public class FabricGatewayService : FabricServiceBase, IFabricGatewayService
 {
@@ -40,6 +39,8 @@ public class FabricGatewayService : FabricServiceBase, IFabricGatewayService
     {
         try
         {
+            ValidateGuids((gatewayId, nameof(gatewayId)));
+
             // The Fabric API doesn't have a direct get gateway by ID endpoint,
             // so we'll list all gateways and find the specific one
             var allGateways = await ListGatewaysAsync();
@@ -56,6 +57,8 @@ public class FabricGatewayService : FabricServiceBase, IFabricGatewayService
     {
         try
         {
+            ValidateGuids((request.CapacityId, nameof(request.CapacityId)));
+
             Logger.LogInformation("Creating VNet gateway '{DisplayName}' in capacity '{CapacityId}'",
                 request.DisplayName, request.CapacityId);
 
