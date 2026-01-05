@@ -3,6 +3,8 @@ using System.ComponentModel;
 using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Extensions;
 using DataFactory.MCP.Models.Dataflow;
+using DataFactory.MCP.Models.Dataflow.Definition;
+using DataFactory.MCP.Models.Connection;
 
 namespace DataFactory.MCP.Tools;
 
@@ -10,11 +12,16 @@ namespace DataFactory.MCP.Tools;
 public class DataflowTool
 {
     private readonly IFabricDataflowService _dataflowService;
+    private readonly IFabricConnectionService _connectionService;
     private readonly IValidationService _validationService;
 
-    public DataflowTool(IFabricDataflowService dataflowService, IValidationService validationService)
+    public DataflowTool(
+        IFabricDataflowService dataflowService,
+        IFabricConnectionService connectionService,
+        IValidationService validationService)
     {
         _dataflowService = dataflowService;
+        _connectionService = connectionService;
         _validationService = validationService;
     }
 
@@ -120,5 +127,112 @@ public class DataflowTool
         }
     }
 
+    [McpServerTool, Description(@"Gets the decoded definition of a dataflow with human-readable content (queryMetadata.json, mashup.pq M code, and .platform metadata).")]
+    public async Task<string> GetDecodedDataflowDefinitionAsync(
+        [Description("The workspace ID containing the dataflow (required)")] string workspaceId,
+        [Description("The dataflow ID to get the decoded definition for (required)")] string dataflowId)
+    {
+        try
+        {
+            _validationService.ValidateRequiredString(workspaceId, nameof(workspaceId));
+            _validationService.ValidateRequiredString(dataflowId, nameof(dataflowId));
 
+            var decoded = await _dataflowService.GetDecodedDataflowDefinitionAsync(workspaceId, dataflowId);
+
+            var result = new
+            {
+                Success = true,
+                DataflowId = dataflowId,
+                WorkspaceId = workspaceId,
+                QueryMetadata = decoded.QueryMetadata,
+                MashupQuery = decoded.MashupQuery,
+                PlatformMetadata = decoded.PlatformMetadata,
+                RawPartsCount = decoded.RawParts.Count,
+                RawParts = decoded.RawParts.Select(p => new
+                {
+                    Path = p.Path,
+                    PayloadType = p.PayloadType.ToString(),
+                    PayloadSize = p.Payload?.Length ?? 0
+                })
+            };
+
+            return result.ToMcpJson();
+        }
+        catch (ArgumentException ex)
+        {
+            return ex.ToValidationError().ToMcpJson();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return ex.ToAuthenticationError().ToMcpJson();
+        }
+        catch (HttpRequestException ex)
+        {
+            return ex.ToHttpError().ToMcpJson();
+        }
+        catch (Exception ex)
+        {
+            return ex.ToOperationError("getting decoded dataflow definition").ToMcpJson();
+        }
+    }
+
+    [McpServerTool, Description(@"Adds a connection to an existing dataflow by updating its definition. Retrieves the current dataflow definition, gets connection details, and updates the queryMetadata.json to include the new connection.")]
+    public async Task<string> AddConnectionToDataflowAsync(
+        [Description("The workspace ID containing the dataflow (required)")] string workspaceId,
+        [Description("The dataflow ID to update (required)")] string dataflowId,
+        [Description("The connection ID to add to the dataflow (required)")] string connectionId)
+    {
+        try
+        {
+            _validationService.ValidateRequiredString(workspaceId, nameof(workspaceId));
+            _validationService.ValidateRequiredString(dataflowId, nameof(dataflowId));
+            _validationService.ValidateRequiredString(connectionId, nameof(connectionId));
+
+            // Get connection details using the dedicated connection service
+            var connection = await _connectionService.GetConnectionAsync(connectionId);
+            if (connection == null)
+            {
+                var errorResponse = new
+                {
+                    Success = false,
+                    DataflowId = dataflowId,
+                    WorkspaceId = workspaceId,
+                    ConnectionId = connectionId,
+                    Message = $"Connection with ID '{connectionId}' not found"
+                };
+                return errorResponse.ToMcpJson();
+            }
+
+            var result = await _dataflowService.AddConnectionToDataflowAsync(workspaceId, dataflowId, connectionId, connection);
+
+            var response = new
+            {
+                Success = result.Success,
+                DataflowId = result.DataflowId,
+                WorkspaceId = result.WorkspaceId,
+                ConnectionId = connectionId,
+                Message = result.Success
+                    ? $"Successfully added connection {connectionId} to dataflow {dataflowId}"
+                    : result.ErrorMessage
+            };
+
+            return response.ToMcpJson();
+        }
+        catch (ArgumentException ex)
+        {
+            return ex.ToValidationError().ToMcpJson();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return ex.ToAuthenticationError().ToMcpJson();
+        }
+        catch (HttpRequestException ex)
+        {
+            return ex.ToHttpError().ToMcpJson();
+        }
+        catch (Exception ex)
+        {
+            return ex.ToOperationError("adding connection to dataflow").ToMcpJson();
+        }
+    }
 }

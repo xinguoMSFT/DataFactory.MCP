@@ -7,60 +7,16 @@ This guide covers how to use the Microsoft Data Factory MCP Server for managing 
 The dataflow management tools allow you to:
 - **Create** new dataflows in Microsoft Fabric workspaces
 - **List** all dataflows within a specific workspace
-- Access detailed dataflow information including properties and metadata
+- **Get** decoded dataflow definitions with M code and metadata
+- **Execute** M (Power Query) queries against dataflows
+- **Add** connections to existing dataflows
 - Navigate paginated results for large dataflow collections
-- Handle different dataflow types and configurations
 
-## Available Operations
+## MCP Tools
 
-### Create Dataflow
+### list_dataflows
 
-Create a new dataflow in a specified Microsoft Fabric workspace. The workspace must be on a supported Fabric capacity.
-
-#### Usage
-```
-create_dataflow(workspaceId: "12345678-1234-1234-1234-123456789012", displayName: "My New Dataflow")
-```
-
-#### With Optional Parameters
-```
-create_dataflow(
-  workspaceId: "12345678-1234-1234-1234-123456789012", 
-  displayName: "Sales ETL Pipeline",
-  description: "Processes daily sales data from multiple sources",
-  folderId: "11111111-1111-1111-1111-111111111111"
-)
-```
-
-#### Parameters
-- **workspaceId** (required): The workspace ID where the dataflow will be created
-- **displayName** (required): The display name for the dataflow (max 256 characters)
-- **description** (optional): Description of the dataflow's purpose (max 256 characters)
-- **folderId** (optional): ID of the folder where the dataflow will be created (defaults to workspace root)
-
-#### Response Format
-```json
-{
-  "success": true,
-  "message": "Dataflow 'Sales ETL Pipeline' created successfully",
-  "dataflowId": "87654321-4321-4321-4321-210987654321",
-  "displayName": "Sales ETL Pipeline",
-  "description": "Processes daily sales data from multiple sources",
-  "type": "Dataflow",
-  "workspaceId": "12345678-1234-1234-1234-123456789012",
-  "folderId": "11111111-1111-1111-1111-111111111111",
-  "createdAt": "2025-10-30T10:30:00Z"
-}
-```
-
-#### Requirements
-- The workspace must be on a supported Fabric capacity
-- User must have appropriate permissions in the target workspace
-- Display name must follow Fabric naming conventions
-
-### List Dataflows
-
-Retrieve a list of all dataflows within a specified workspace with full details.
+Returns a list of Dataflows from the specified workspace. This API supports pagination.
 
 #### Usage
 ```
@@ -69,8 +25,18 @@ list_dataflows(workspaceId: "12345678-1234-1234-1234-123456789012")
 
 #### With Pagination
 ```
-list_dataflows(workspaceId: "12345678-1234-1234-1234-123456789012", continuationToken: "next-page-token")
+list_dataflows(
+  workspaceId: "12345678-1234-1234-1234-123456789012", 
+  continuationToken: "next-page-token"
+)
 ```
+
+#### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `workspaceId` | Yes | The workspace ID to list dataflows from |
+| `continuationToken` | No | A token for retrieving the next page of results |
 
 #### Response Format
 ```json
@@ -87,20 +53,142 @@ list_dataflows(workspaceId: "12345678-1234-1234-1234-123456789012", continuation
       "description": "Extracts, transforms and loads sales data from multiple sources",
       "type": "Dataflow",
       "workspaceId": "12345678-1234-1234-1234-123456789012",
-      "folderId": "11111111-1111-1111-1111-111111111111",
-      "tags": [
-        {
-          "id": "22222222-2222-2222-2222-222222222222",
-          "displayName": "Sales"
-        }
-      ],
-      "properties": {
-        "isParametric": false
-      }
+      "folderId": "11111111-1111-1111-1111-111111111111"
     }
   ]
 }
 ```
+
+### create_dataflow
+
+Creates a Dataflow in the specified workspace. The workspace must be on a supported Fabric capacity.
+
+#### Usage
+```
+create_dataflow(
+  workspaceId: "12345678-1234-1234-1234-123456789012", 
+  displayName: "My New Dataflow"
+)
+```
+
+#### With Optional Parameters
+```
+create_dataflow(
+  workspaceId: "12345678-1234-1234-1234-123456789012", 
+  displayName: "Sales ETL Pipeline",
+  description: "Processes daily sales data from multiple sources",
+  folderId: "11111111-1111-1111-1111-111111111111"
+)
+```
+
+#### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `workspaceId` | Yes | The workspace ID where the dataflow will be created |
+| `displayName` | Yes | The Dataflow display name |
+| `description` | No | The Dataflow description (max 256 characters) |
+| `folderId` | No | The folder ID where the dataflow will be created (defaults to workspace root) |
+
+#### Response Format
+```json
+{
+  "success": true,
+  "message": "Dataflow 'Sales ETL Pipeline' created successfully",
+  "dataflowId": "87654321-4321-4321-4321-210987654321",
+  "displayName": "Sales ETL Pipeline",
+  "description": "Processes daily sales data from multiple sources",
+  "type": "Dataflow",
+  "workspaceId": "12345678-1234-1234-1234-123456789012",
+  "folderId": "11111111-1111-1111-1111-111111111111",
+  "createdAt": "2025-10-30T10:30:00Z"
+}
+```
+
+### get_decoded_dataflow_definition
+
+Gets the decoded definition of a dataflow with human-readable content (queryMetadata.json, mashup.pq M code, and .platform metadata).
+
+#### Usage
+```
+get_decoded_dataflow_definition(
+  workspaceId: "12345678-1234-1234-1234-123456789012",
+  dataflowId: "87654321-4321-4321-4321-210987654321"
+)
+```
+
+#### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `workspaceId` | Yes | The workspace ID containing the dataflow |
+| `dataflowId` | Yes | The dataflow ID to get the decoded definition for |
+
+#### Response Format
+```json
+{
+  "success": true,
+  "dataflowId": "87654321-4321-4321-4321-210987654321",
+  "workspaceId": "12345678-1234-1234-1234-123456789012",
+  "queryMetadata": { ... },
+  "mashupQuery": "section Section1; shared Query1 = let Source = ...",
+  "platformMetadata": { ... },
+  "rawPartsCount": 3,
+  "rawParts": [
+    {
+      "path": "mashup.pq",
+      "payloadType": "Text",
+      "payloadSize": 1024
+    }
+  ]
+}
+```
+
+### execute_query
+
+Executes a query against a dataflow and returns the complete results (all data) in Apache Arrow format. This allows you to run M (Power Query) language queries against data sources connected through the dataflow and get the full dataset.
+
+#### Usage
+```
+execute_query(
+  workspaceId: "12345678-1234-1234-1234-123456789012",
+  dataflowId: "87654321-4321-4321-4321-210987654321",
+  queryName: "MyQuery",
+  customMashupDocument: "let Source = Sql.Database(\"server\", \"db\") in Source"
+)
+```
+
+#### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `workspaceId` | Yes | The workspace ID containing the dataflow |
+| `dataflowId` | Yes | The dataflow ID to execute the query against |
+| `queryName` | Yes | The name of the query to execute |
+| `customMashupDocument` | Yes | The M (Power Query) language query to execute. Can be either a raw M expression (which will be auto-wrapped) or a complete section document. |
+
+**Note**: When displaying results to users, format the `table.rows` data as a markdown table using the column names from `table.columns` for immediate visual representation.
+
+### add_connection_to_dataflow
+
+Adds a connection to an existing dataflow by updating its definition. Retrieves the current dataflow definition, gets connection details, and updates the queryMetadata.json to include the new connection.
+
+#### Usage
+```
+add_connection_to_dataflow(
+  workspaceId: "12345678-1234-1234-1234-123456789012",
+  dataflowId: "87654321-4321-4321-4321-210987654321",
+  connectionId: "a0b9fa12-60f5-4f95-85ca-565d34abcea1"
+)
+```
+
+#### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `workspaceId` | Yes | The workspace ID containing the dataflow |
+| `dataflowId` | Yes | The dataflow ID to update |
+| `connectionId` | Yes | The connection ID to add to the dataflow |
 
 ## Dataflow Properties
 
@@ -133,9 +221,6 @@ Dataflows in Microsoft Fabric include several key properties:
 
 # Create dataflow in a specific folder
 > create dataflow "Marketing Data" in folder 11111111-1111-1111-1111-111111111111 within workspace 12345678-1234-1234-1234-123456789012
-
-# Create dataflow with all options
-> create a new dataflow called "Comprehensive ETL" with description "Main data processing pipeline" in folder 11111111-1111-1111-1111-111111111111 of workspace 12345678-1234-1234-1234-123456789012
 ```
 
 ### Basic Dataflow Operations
@@ -143,21 +228,21 @@ Dataflows in Microsoft Fabric include several key properties:
 # List all dataflows in a workspace
 > list dataflows in workspace 12345678-1234-1234-1234-123456789012
 
-# List dataflows with specific workspace
-> show me all dataflows in my analytics workspace
-
-# Get dataflows from a workspace with pagination
-> list dataflows in workspace abc123 with continuation token xyz789
+# Get decoded dataflow definition
+> show me the M code for dataflow 87654321-4321-4321-4321-210987654321 in workspace 12345678-1234-1234-1234-123456789012
 ```
 
-### Practical Scenarios
+### Query Execution
 ```
-# Discovery - find all dataflows in a workspace
-> what dataflows are available in workspace 12345678-1234-1234-1234-123456789012?
+# Execute a simple M query
+> run query against dataflow to get all customers from the SQL database
 
-# Analysis - understand dataflow distribution
-> show me how many dataflows are in workspace 12345678-1234-1234-1234-123456789012
+# Execute a custom M expression
+> execute M query "let Source = Sql.Database(\"server\", \"db\"), Customers = Source{[Schema=\"dbo\",Item=\"Customers\"]}[Data] in Customers"
+```
 
-# Navigation - browse through large collections
-# get the next page of dataflows using token eyJza2lwIjoyMCwidGFrZSI6MjB9
+### Adding Connections
+```
+# Add a connection to a dataflow
+> add connection a0b9fa12-60f5-4f95-85ca-565d34abcea1 to dataflow 87654321-4321-4321-4321-210987654321 in workspace 12345678-1234-1234-1234-123456789012
 ```

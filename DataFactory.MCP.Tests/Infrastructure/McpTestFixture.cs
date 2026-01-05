@@ -3,7 +3,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using DataFactory.MCP.Abstractions.Interfaces;
+using DataFactory.MCP.Abstractions.Interfaces.DMTSv2;
+using DataFactory.MCP.Configuration;
+using DataFactory.MCP.Infrastructure.Http;
 using DataFactory.MCP.Services;
+using DataFactory.MCP.Services.DMTSv2;
 using DataFactory.MCP.Tools;
 using DataFactory.MCP.Models.Connection.Factories;
 
@@ -43,14 +47,38 @@ public class McpTestFixture : IDisposable
                 // Configure logging
                 services.AddLogging(builder => builder.AddConsole());
 
-                // Configure HTTP client
-                services.AddHttpClient();
+                // Register authentication handlers
+                services.AddTransient<FabricAuthenticationHandler>();
+                services.AddTransient<AzureResourceManagerAuthenticationHandler>();
+
+                // Register named HttpClients with authentication handlers (matching Program.cs)
+                services.AddHttpClient(HttpClientNames.FabricApi, client =>
+                {
+                    client.BaseAddress = new Uri(ApiVersions.Fabric.V1BaseUrl + "/");
+                    client.Timeout = TimeSpan.FromSeconds(30);
+                }).AddHttpMessageHandler<FabricAuthenticationHandler>();
+
+                services.AddHttpClient(HttpClientNames.AzureResourceManager, client =>
+                {
+                    client.BaseAddress = new Uri("https://management.azure.com/");
+                    client.Timeout = TimeSpan.FromSeconds(30);
+                }).AddHttpMessageHandler<AzureResourceManagerAuthenticationHandler>();
+
+                services.AddHttpClient(HttpClientNames.PowerBiV2Api, client =>
+                {
+                    client.BaseAddress = new Uri(ApiVersions.PowerBi.V2BaseUrl + "/");
+                    client.Timeout = TimeSpan.FromSeconds(30);
+                }).AddHttpMessageHandler<FabricAuthenticationHandler>();
 
 
                 // Register services
+                // AuthenticationService must be Singleton to persist tokens across scopes/requests
+                services.AddSingleton<IAuthenticationService, AuthenticationService>();
                 services.AddScoped<IValidationService, ValidationService>();
-                services.AddScoped<IAuthenticationService, AuthenticationService>();
                 services.AddScoped<IArrowDataReaderService, ArrowDataReaderService>();
+                services.AddScoped<IDataTransformationService, DataTransformationService>();
+                services.AddScoped<IDataflowDefinitionProcessor, DataflowDefinitionProcessor>();
+                services.AddScoped<IGatewayClusterDatasourceService, GatewayClusterDatasourceService>();
                 services.AddScoped<IFabricGatewayService, FabricGatewayService>();
                 services.AddScoped<IFabricConnectionService, FabricConnectionService>();
                 services.AddScoped<IFabricWorkspaceService, FabricWorkspaceService>();

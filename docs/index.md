@@ -5,6 +5,7 @@ Comprehensive documentation for the Microsoft Data Factory MCP Server.
 ## User Guides
 
 - **[Authentication Guide](authentication.md)** - Setup and configuration
+- **[Capacity Management Guide](capacity-management.md)** - Managing Microsoft Fabric capacities
 - **[Gateway Management Guide](gateway-management.md)** - Managing Azure Data Factory gateways
 - **[Connection Management Guide](connection-management.md)** - Managing Azure Data Factory connections
 - **[Workspace Management Guide](workspace-management.md)** - Managing Microsoft Fabric workspaces

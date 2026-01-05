@@ -3,27 +3,22 @@ using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Models.Connection;
 using DataFactory.MCP.Models.Connection.Create;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
-using System.Text;
+using System.Net.Http;
 
 namespace DataFactory.MCP.Services;
 
 /// <summary>
-/// Service for interacting with Microsoft Fabric Connections API
+/// Service for interacting with Microsoft Fabric Connections API.
+/// Authentication is handled automatically by FabricAuthenticationHandler.
 /// </summary>
 public class FabricConnectionService : FabricServiceBase, IFabricConnectionService
 {
     public FabricConnectionService(
+        IHttpClientFactory httpClientFactory,
         ILogger<FabricConnectionService> logger,
-        IAuthenticationService authService)
-        : base(logger, authService)
+        IValidationService validationService)
+        : base(httpClientFactory, logger, validationService)
     {
-        // Add the custom connection converter to handle polymorphic deserialization
-        JsonOptions.Converters.Add(new ConnectionJsonConverter());
-        // Add the credentials converter for create requests
-        JsonOptions.Converters.Add(new CredentialsJsonConverter());
-        // Add the connection details parameter converter
-        JsonOptions.Converters.Add(new ConnectionDetailsParameterJsonConverter());
     }
 
     public async Task<ListConnectionsResponse> ListConnectionsAsync(string? continuationToken = null)
@@ -45,6 +40,8 @@ public class FabricConnectionService : FabricServiceBase, IFabricConnectionServi
     {
         try
         {
+            ValidateGuids((connectionId, nameof(connectionId)));
+
             // The Fabric API doesn't have a direct get connection by ID endpoint,
             // so we'll list all connections and find the specific one
             var allConnections = await ListConnectionsAsync();
@@ -61,13 +58,9 @@ public class FabricConnectionService : FabricServiceBase, IFabricConnectionServi
     {
         try
         {
-            var json = JsonSerializer.Serialize(request, JsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
             Logger.LogInformation("Creating cloud connection: {DisplayName}", request.DisplayName);
-            Logger.LogDebug("Request JSON: {Json}", json);
 
-            var response = await PostAsync<ShareableCloudConnection>("connections", content);
+            var response = await PostAsync<ShareableCloudConnection>("connections", request);
 
             if (response == null)
             {
@@ -88,12 +81,9 @@ public class FabricConnectionService : FabricServiceBase, IFabricConnectionServi
     {
         try
         {
-            var json = JsonSerializer.Serialize(request, JsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
             Logger.LogInformation("Creating virtual network gateway connection: {DisplayName}", request.DisplayName);
 
-            var response = await PostAsync<VirtualNetworkGatewayConnection>("connections", content);
+            var response = await PostAsync<VirtualNetworkGatewayConnection>("connections", request);
 
             if (response == null)
             {

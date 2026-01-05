@@ -1,27 +1,30 @@
 using DataFactory.MCP.Abstractions.Interfaces;
-using DataFactory.MCP.Models;
+using DataFactory.MCP.Configuration;
+using DataFactory.MCP.Extensions;
+using DataFactory.MCP.Infrastructure.Http;
 using DataFactory.MCP.Models.Azure;
 using Microsoft.Extensions.Logging;
+using System.Net.Http;
 using System.Text.Json;
 
 namespace DataFactory.MCP.Services;
 
 /// <summary>
-/// Service for discovering Azure resources using Azure Resource Manager APIs
+/// Service for discovering Azure resources using Azure Resource Manager APIs.
+/// Authentication is handled automatically by the AzureResourceManagerAuthenticationHandler in the HTTP pipeline.
 /// </summary>
-public class AzureResourceDiscoveryService : IAzureResourceDiscoveryService, IDisposable
+public class AzureResourceDiscoveryService : IAzureResourceDiscoveryService
 {
-    private readonly IAuthenticationService _authService;
     private readonly HttpClient _httpClient;
     private readonly ILogger<AzureResourceDiscoveryService> _logger;
-    private const string AzureResourceManagerBaseUrl = "https://management.azure.com";
+
+    private static JsonSerializerOptions JsonOptions => JsonSerializerOptionsProvider.CaseInsensitive;
 
     public AzureResourceDiscoveryService(
-        IAuthenticationService authService,
+        IHttpClientFactory httpClientFactory,
         ILogger<AzureResourceDiscoveryService> logger)
     {
-        _authService = authService;
-        _httpClient = new HttpClient();
+        _httpClient = httpClientFactory.CreateClient(HttpClientNames.AzureResourceManager);
         _logger = logger;
     }
 
@@ -31,33 +34,17 @@ public class AzureResourceDiscoveryService : IAzureResourceDiscoveryService, IDi
         {
             _logger.LogInformation("Getting Azure subscriptions");
 
-            var token = await _authService.GetAccessTokenAsync(AzureAdConfiguration.AzureResourceManagerScopes);
-            if (string.IsNullOrEmpty(token) || token.Contains("Error") || token.Contains("Failed"))
-            {
-                _logger.LogError("Failed to get Azure Resource Manager token: {Token}", token);
-                return new List<AzureSubscription>();
-            }
+            var url = FabricUrlBuilder.ForAzureResourceManager()
+                .WithLiteralPath("subscriptions")
+                .WithApiVersion(ApiVersions.AzureResourceManager.Subscriptions)
+                .Build();
 
-            var url = $"{AzureResourceManagerBaseUrl}/subscriptions?api-version=2020-01-01";
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync(url);
+            var subscriptionsResponse = await response.ReadAsJsonOrDefaultAsync(
+                new AzureSubscriptionsResponse(), JsonOptions);
 
-            var response = await _httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get subscriptions. Status: {StatusCode}, Content: {Content}",
-                    response.StatusCode, await response.Content.ReadAsStringAsync());
-                return new List<AzureSubscription>();
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            var subscriptionsResponse = JsonSerializer.Deserialize<AzureSubscriptionsResponse>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            _logger.LogInformation("Successfully retrieved {Count} subscriptions", subscriptionsResponse?.Value?.Count ?? 0);
-            return subscriptionsResponse?.Value ?? new List<AzureSubscription>();
+            _logger.LogInformation("Successfully retrieved {Count} subscriptions", subscriptionsResponse.Value?.Count ?? 0);
+            return subscriptionsResponse.Value ?? new List<AzureSubscription>();
         }
         catch (Exception ex)
         {
@@ -72,33 +59,17 @@ public class AzureResourceDiscoveryService : IAzureResourceDiscoveryService, IDi
         {
             _logger.LogInformation("Getting resource groups for subscription {SubscriptionId}", subscriptionId);
 
-            var token = await _authService.GetAccessTokenAsync(AzureAdConfiguration.AzureResourceManagerScopes);
-            if (string.IsNullOrEmpty(token) || token.Contains("Error") || token.Contains("Failed"))
-            {
-                _logger.LogError("Failed to get Azure Resource Manager token: {Token}", token);
-                return new List<AzureResourceGroup>();
-            }
+            var url = FabricUrlBuilder.ForAzureResourceManager()
+                .WithLiteralPath($"subscriptions/{subscriptionId}/resourcegroups")
+                .WithApiVersion(ApiVersions.AzureResourceManager.ResourceGroups)
+                .Build();
 
-            var url = $"{AzureResourceManagerBaseUrl}/subscriptions/{subscriptionId}/resourcegroups?api-version=2021-04-01";
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync(url);
+            var resourceGroupsResponse = await response.ReadAsJsonOrDefaultAsync(
+                new AzureResourceGroupsResponse(), JsonOptions);
 
-            var response = await _httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get resource groups. Status: {StatusCode}, Content: {Content}",
-                    response.StatusCode, await response.Content.ReadAsStringAsync());
-                return new List<AzureResourceGroup>();
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            var resourceGroupsResponse = JsonSerializer.Deserialize<AzureResourceGroupsResponse>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            _logger.LogInformation("Successfully retrieved {Count} resource groups", resourceGroupsResponse?.Value?.Count ?? 0);
-            return resourceGroupsResponse?.Value ?? new List<AzureResourceGroup>();
+            _logger.LogInformation("Successfully retrieved {Count} resource groups", resourceGroupsResponse.Value?.Count ?? 0);
+            return resourceGroupsResponse.Value ?? new List<AzureResourceGroup>();
         }
         catch (Exception ex)
         {
@@ -114,42 +85,23 @@ public class AzureResourceDiscoveryService : IAzureResourceDiscoveryService, IDi
             _logger.LogInformation("Getting virtual networks for subscription {SubscriptionId}, resource group {ResourceGroupName}",
                 subscriptionId, resourceGroupName ?? "all");
 
-            var token = await _authService.GetAccessTokenAsync(AzureAdConfiguration.AzureResourceManagerScopes);
-            if (string.IsNullOrEmpty(token) || token.Contains("Error") || token.Contains("Failed"))
-            {
-                _logger.LogError("Failed to get Azure Resource Manager token: {Token}", token);
-                return new List<AzureVirtualNetwork>();
-            }
-
-            string url;
+            var urlBuilder = FabricUrlBuilder.ForAzureResourceManager();
             if (!string.IsNullOrEmpty(resourceGroupName))
             {
-                url = $"{AzureResourceManagerBaseUrl}/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/virtualNetworks?api-version=2023-04-01";
+                urlBuilder.WithLiteralPath($"subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/virtualNetworks");
             }
             else
             {
-                url = $"{AzureResourceManagerBaseUrl}/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualNetworks?api-version=2023-04-01";
+                urlBuilder.WithLiteralPath($"subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualNetworks");
             }
+            var url = urlBuilder.WithApiVersion(ApiVersions.AzureResourceManager.Network).Build();
 
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync(url);
+            var virtualNetworksResponse = await response.ReadAsJsonOrDefaultAsync(
+                new AzureVirtualNetworksResponse(), JsonOptions);
 
-            var response = await _httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get virtual networks. Status: {StatusCode}, Content: {Content}",
-                    response.StatusCode, await response.Content.ReadAsStringAsync());
-                return new List<AzureVirtualNetwork>();
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            var virtualNetworksResponse = JsonSerializer.Deserialize<AzureVirtualNetworksResponse>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            _logger.LogInformation("Successfully retrieved {Count} virtual networks", virtualNetworksResponse?.Value?.Count ?? 0);
-            return virtualNetworksResponse?.Value ?? new List<AzureVirtualNetwork>();
+            _logger.LogInformation("Successfully retrieved {Count} virtual networks", virtualNetworksResponse.Value?.Count ?? 0);
+            return virtualNetworksResponse.Value ?? new List<AzureVirtualNetwork>();
         }
         catch (Exception ex)
         {
@@ -165,43 +117,22 @@ public class AzureResourceDiscoveryService : IAzureResourceDiscoveryService, IDi
             _logger.LogInformation("Getting subnets for VNet {VirtualNetworkName} in resource group {ResourceGroupName}",
                 virtualNetworkName, resourceGroupName);
 
-            var token = await _authService.GetAccessTokenAsync(AzureAdConfiguration.AzureResourceManagerScopes);
-            if (string.IsNullOrEmpty(token) || token.Contains("Error") || token.Contains("Failed"))
-            {
-                _logger.LogError("Failed to get Azure Resource Manager token: {Token}", token);
-                return new List<AzureSubnet>();
-            }
+            var url = FabricUrlBuilder.ForAzureResourceManager()
+                .WithLiteralPath($"subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/virtualNetworks/{virtualNetworkName}/subnets")
+                .WithApiVersion(ApiVersions.AzureResourceManager.Network)
+                .Build();
 
-            var url = $"{AzureResourceManagerBaseUrl}/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/virtualNetworks/{virtualNetworkName}/subnets?api-version=2023-04-01";
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync(url);
+            var subnetsResponse = await response.ReadAsJsonOrDefaultAsync(
+                new AzureSubnetsResponse(), JsonOptions);
 
-            var response = await _httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get subnets. Status: {StatusCode}, Content: {Content}",
-                    response.StatusCode, await response.Content.ReadAsStringAsync());
-                return new List<AzureSubnet>();
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            var subnetsResponse = JsonSerializer.Deserialize<AzureSubnetsResponse>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            _logger.LogInformation("Successfully retrieved {Count} subnets", subnetsResponse?.Value?.Count ?? 0);
-            return subnetsResponse?.Value ?? new List<AzureSubnet>();
+            _logger.LogInformation("Successfully retrieved {Count} subnets", subnetsResponse.Value?.Count ?? 0);
+            return subnetsResponse.Value ?? new List<AzureSubnet>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting subnets for VNet {VirtualNetworkName}", virtualNetworkName);
             return new List<AzureSubnet>();
         }
-    }
-
-    public void Dispose()
-    {
-        _httpClient?.Dispose();
     }
 }

@@ -104,46 +104,10 @@ public static class Messages
     /// API request failed message template
     /// </summary>
     public const string ApiRequestFailedTemplate = "API request failed: {0}";
-
-    /// <summary>
-    /// Error listing connections message template
-    /// </summary>
-    public const string ErrorListingConnectionsTemplate = "Error listing connections: {0}";
-
-    /// <summary>
-    /// Error retrieving connection message template
-    /// </summary>
-    public const string ErrorRetrievingConnectionTemplate = "Error retrieving connection: {0}";
-
-    /// <summary>
-    /// Error listing gateways message template
-    /// </summary>
-    public const string ErrorListingGatewaysTemplate = "Error listing gateways: {0}";
-
-    /// <summary>
-    /// Error retrieving gateway message template
-    /// </summary>
-    public const string ErrorRetrievingGatewayTemplate = "Error retrieving gateway: {0}";
-
-    /// <summary>
-    /// Error listing workspaces message template
-    /// </summary>
-    public const string ErrorListingWorkspacesTemplate = "Error listing workspaces: {0}";
     #endregion
 
     #region Validation Messages
-    /// <summary>
-    /// Message when application ID parameter is empty
-    /// </summary>
-    public const string InvalidParameterApplicationIdEmpty = "Invalid parameter: applicationId cannot be empty";
-
-    /// <summary>
-    /// Message when client secret parameter is empty
-    /// </summary>
-    public const string InvalidParameterClientSecretEmpty = "Invalid parameter: clientSecret cannot be empty";
-
     public static string InvalidParameterEmpty(string parameterName) => $"{parameterName} is required and cannot be empty";
-
     #endregion
 
     #region Not Found Messages
@@ -156,16 +120,6 @@ public static class Messages
     /// Message when no gateways are found
     /// </summary>
     public const string NoGatewaysFound = "No gateways found. Make sure you have the required permissions (Gateway.Read.All or Gateway.ReadWrite.All).";
-
-    /// <summary>
-    /// Template for connection not found message
-    /// </summary>
-    public const string ConnectionNotFoundTemplate = "Connection with ID '{0}' not found or you don't have permission to access it.";
-
-    /// <summary>
-    /// Template for gateway not found message
-    /// </summary>
-    public const string GatewayNotFoundTemplate = "Gateway with ID '{0}' not found or you don't have permission to access it.";
 
     /// <summary>
     /// Message when no workspaces are found

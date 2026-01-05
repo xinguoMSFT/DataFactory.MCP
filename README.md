@@ -21,11 +21,12 @@ A Model Context Protocol (MCP) server for Microsoft Fabric resource discovery an
 
 ## Available Tools
 
-- **Authentication**: `authenticate_interactive`, `authenticate_service_principal`, `get_authentication_status`, `get_access_token`, `sign_out`
+- **Authentication**: `authenticate_interactive`, `authenticate_service_principal`, `get_authentication_status`, `get_access_token`, `get_azure_resource_manager_token`, `sign_out`
+- **Azure Resource Discovery**: `get_azure_subscriptions`, `get_azure_resource_groups`, `get_azure_virtual_networks`, `get_azure_subnets`
 - **Gateway Management**: `list_gateways`, `get_gateway`, `create_v_net_gateway`
-- **Connection Management**: `list_connections`, `get_connection`, `create_cloud_sql_basic`, `create_v_net_sql_basic`
+- **Connection Management**: `list_connections`, `get_connection`, `create_cloud_sql_basic`, `create_cloud_sql_workspace_identity`, `create_cloud_web_anonymous`, `create_cloud_web_basic`, `create_v_net_sql_basic`, `create_v_net_sql_workspace_identity`
 - **Workspace Management**: `list_workspaces`
-- **Dataflow Management**: `list_dataflows`, `create_dataflow`
+- **Dataflow Management**: `list_dataflows`, `create_dataflow`, `get_decoded_dataflow_definition`, `add_connection_to_dataflow`
 - **Dataflow Query Execution**: `execute_query` *(Preview)*
 - **Capacity Management**: `list_capacities`
 
