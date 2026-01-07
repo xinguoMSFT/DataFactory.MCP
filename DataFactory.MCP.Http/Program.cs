@@ -37,6 +37,4 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = Dat
 
 logger.LogInformation("DataFactory MCP HTTP Server configured successfully");
 
-// Default port is 3001, can be overridden via command line or configuration
-var urls = builder.Configuration["urls"] ?? "http://localhost:3001";
-app.Run(urls);
+app.Run();
