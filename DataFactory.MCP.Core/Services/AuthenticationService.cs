@@ -15,6 +15,8 @@ public class AuthenticationService : IAuthenticationService
     private IPublicClientApplication? _publicClientApp;
     private Task<AuthenticationResult>? _pendingDeviceAuth;
     private string? _pendingDeviceInstructions;
+    private DateTime? _deviceAuthStartTime;
+    private readonly TimeSpan _deviceAuthTimeout = TimeSpan.FromMinutes(15); // Match Azure AD default
 
     public AuthenticationService(ILogger<AuthenticationService> logger)
     {
@@ -99,13 +101,32 @@ public class AuthenticationService : IAuthenticationService
 
             if (_pendingDeviceAuth != null && !_pendingDeviceAuth.IsCompleted)
             {
-                return $"Device authentication already in progress.\n\n{_pendingDeviceInstructions}";
+                var timeRemaining = _deviceAuthStartTime.HasValue
+                    ? _deviceAuthTimeout - (DateTime.UtcNow - _deviceAuthStartTime.Value)
+                    : TimeSpan.Zero;
+
+                if (timeRemaining > TimeSpan.Zero)
+                {
+                    return $"Device authentication already in progress.\n\n{_pendingDeviceInstructions}\n\n⏱️ Time remaining: {timeRemaining.Minutes} minutes";
+                }
+                else
+                {
+                    // Timeout reached, clean up
+                    _logger.LogWarning("Device authentication timed out, cleaning up");
+                    _pendingDeviceAuth = null;
+                    _pendingDeviceInstructions = null;
+                    _deviceAuthStartTime = null;
+                }
             }
 
             _logger.LogInformation("Starting device code authentication");
+            _deviceAuthStartTime = DateTime.UtcNow;
 
             string deviceInstructions = string.Empty;
             var taskCompletionSource = new TaskCompletionSource<string>();
+
+            // Start the device code flow with timeout
+            var cancellationTokenSource = new CancellationTokenSource(_deviceAuthTimeout);
 
             // Start the device code flow but don't await it
             _pendingDeviceAuth = _publicClientApp
@@ -133,14 +154,25 @@ You have {callback.ExpiresOn.Subtract(DateTimeOffset.Now).Minutes} minutes to co
                     taskCompletionSource.SetResult(deviceInstructions);
                     return Task.FromResult(0);
                 })
-                .ExecuteAsync();
+                .ExecuteAsync(cancellationTokenSource.Token);
 
             // Wait for the callback to provide the instructions
             return await taskCompletionSource.Task;
         }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Device code authentication timed out");
+            _pendingDeviceAuth = null;
+            _pendingDeviceInstructions = null;
+            _deviceAuthStartTime = null;
+            return "⏰ Device code authentication timed out. Please try again with 'start_device_code_auth'.";
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start device code authentication");
+            _pendingDeviceAuth = null;
+            _pendingDeviceInstructions = null;
+            _deviceAuthStartTime = null;
             return string.Format(Messages.AuthenticationErrorTemplate, ex.Message);
         }
     }
@@ -159,7 +191,11 @@ You have {callback.ExpiresOn.Subtract(DateTimeOffset.Now).Minutes} minutes to co
 
             if (!_pendingDeviceAuth.IsCompleted)
             {
-                return $"⏳ Device authentication still pending...\n\n{_pendingDeviceInstructions}";
+                var timeRemaining = _deviceAuthStartTime.HasValue
+                    ? _deviceAuthTimeout - (DateTime.UtcNow - _deviceAuthStartTime.Value)
+                    : TimeSpan.Zero;
+
+                return $"⏳ Device authentication still pending...\n\n{_pendingDeviceInstructions}\n\n⏱️ Time remaining: {Math.Max(0, timeRemaining.Minutes)} minutes";
             }
 
             // Authentication completed, get the result
@@ -178,10 +214,20 @@ You have {callback.ExpiresOn.Subtract(DateTimeOffset.Now).Minutes} minutes to co
             // Clear pending auth
             _pendingDeviceAuth = null;
             _pendingDeviceInstructions = null;
+            _deviceAuthStartTime = null;
 
             return $@"✅ **Authentication Successful!**
 Signed in as: {result.Account.Username}
 Tenant: {result.TenantId}";
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Device code authentication was cancelled or timed out");
+            _currentAuth = null;
+            _pendingDeviceAuth = null;
+            _pendingDeviceInstructions = null;
+            _deviceAuthStartTime = null;
+            return "⏰ Device code authentication timed out or was cancelled. Please start a new authentication.";
         }
         catch (Exception ex)
         {
@@ -189,6 +235,7 @@ Tenant: {result.TenantId}";
             _currentAuth = null;
             _pendingDeviceAuth = null;
             _pendingDeviceInstructions = null;
+            _deviceAuthStartTime = null;
             return string.Format(Messages.AuthenticationFailedTemplate, ex.Message);
         }
     }
@@ -201,6 +248,7 @@ Tenant: {result.TenantId}";
 
             // Create a confidential client application for this specific authentication
             var authority = $"https://login.microsoftonline.com/{tenantId ?? AzureAdConfiguration.TenantId}";
+
             var confidentialClient = ConfidentialClientApplicationBuilder
                 .Create(applicationId)
                 .WithClientSecret(clientSecret)
