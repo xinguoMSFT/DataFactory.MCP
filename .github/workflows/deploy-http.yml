@@ -19,6 +19,11 @@ on:
         required: false
         default: ""
         type: string
+      dataflow_query:
+        description: "Enable the dataflow-query feature flag"
+        required: false
+        default: true
+        type: boolean
 
 env:
   AZURE_WEBAPP_NAME: DataFactoryMCP
@@ -97,6 +102,12 @@ jobs:
           client-id: ${{ secrets.AZURE_HTTP_DEPLOY_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_HTTP_DEPLOY_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_HTTP_DEPLOY_SUBSCRIPTION_ID }}
+
+      - name: "Configure App Settings"
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          app-settings-json: '[{"name": "dataflow-query", "value": "${{ github.event.inputs.dataflow_query || true }}"}]'
 
       - name: "Deploy to Azure Web App"
         id: deploy
