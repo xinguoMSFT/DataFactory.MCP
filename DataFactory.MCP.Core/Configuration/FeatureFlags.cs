@@ -17,4 +17,11 @@ public static class FeatureFlags
     /// Only enabled for HTTP version
     /// </summary>
     public const string DeviceCodeAuth = "device-code-auth";
+
+    /// <summary>
+    /// Feature flag for enabling the InteractiveAuthenticationTool
+    /// Command line: --interactive-auth
+    /// Enabled by default for stdio, disabled by default for HTTP
+    /// </summary>
+    public const string InteractiveAuth = "interactive-auth";
 }

@@ -121,6 +121,15 @@ public static class ServiceCollectionExtensions
             nameof(DeviceCodeAuthenticationTool),
             logger);
 
+        // Conditionally enable InteractiveAuthenticationTool based on feature flag
+        // Enabled by default for stdio, disabled by default for HTTP
+        mcpBuilder.RegisterToolWithFeatureFlag<InteractiveAuthenticationTool>(
+            configuration,
+            args,
+            FeatureFlags.InteractiveAuth,
+            nameof(InteractiveAuthenticationTool),
+            logger);
+
         return mcpBuilder;
     }
 }
