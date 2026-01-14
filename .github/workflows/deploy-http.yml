@@ -23,6 +23,11 @@ on:
         required: false
         default: true
         type: boolean
+      device_code_auth:
+        description: "Enable the device-code-auth feature flag"
+        required: false
+        default: true
+        type: boolean
 
 env:
   AZURE_WEBAPP_NAME: DataFactoryMCP
@@ -106,7 +111,7 @@ jobs:
         uses: azure/appservice-settings@v1
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          app-settings-json: '[{"name": "dataflow-query", "value": "${{ github.event.inputs.dataflow_query || true }}"}]'
+          app-settings-json: '[{"name": "dataflow-query", "value": "${{ github.event.inputs.dataflow_query || true }}"}, {"name": "device-code-auth", "value": "${{ github.event.inputs.device_code_auth || true }}"}]'
 
       - name: "Deploy to Azure Web App"
         id: deploy

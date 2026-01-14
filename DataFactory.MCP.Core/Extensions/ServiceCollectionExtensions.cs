@@ -112,6 +112,15 @@ public static class ServiceCollectionExtensions
             nameof(DataflowQueryTool),
             logger);
 
+        // Conditionally enable DeviceCodeAuthenticationTool based on feature flag
+        // This is only enabled for HTTP version
+        mcpBuilder.RegisterToolWithFeatureFlag<DeviceCodeAuthenticationTool>(
+            configuration,
+            args,
+            FeatureFlags.DeviceCodeAuth,
+            nameof(DeviceCodeAuthenticationTool),
+            logger);
+
         return mcpBuilder;
     }
 }

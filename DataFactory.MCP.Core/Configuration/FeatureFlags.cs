@@ -10,4 +10,11 @@ public static class FeatureFlags
     /// Command line: --dataflow-query
     /// </summary>
     public const string DataflowQuery = "dataflow-query";
+
+    /// <summary>
+    /// Feature flag for enabling the DeviceCodeAuthenticationTool
+    /// Command line: --device-code-auth
+    /// Only enabled for HTTP version
+    /// </summary>
+    public const string DeviceCodeAuth = "device-code-auth";
 }
