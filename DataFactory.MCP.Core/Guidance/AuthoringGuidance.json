@@ -51,7 +51,8 @@
     "nextSteps": [
         "1. Author each query following the structure above",
         "2. Replace placeholders with actual values (workspaceId, lakehouseId, column names)",
-        "3. Call 'validate_and_save_m_document' with the complete M document to save to dataflow"
+        "3. Add connections for ALL sources AND destinations using 'add_connection_to_dataflow' tool",
+        "4. Call 'validate_and_save_m_document' with the complete M document to save to dataflow"
     ],
     "gen2": {
         "pattern": "Gen2 FastCopy ETL Pipeline",
@@ -82,7 +83,8 @@
             "Use Lakehouse.Contents([HierarchicalNavigation = null, CreateNavigationProperties = false, EnableFolding = false]) for destination",
             "Use optional navigation with '?' operator: Navigation{[Name = \"Table\"]}?[Data]?",
             "IsNewTarget = true creates the table if it doesn't exist",
-            "Gen2 pattern is simpler: only 2 queries needed (source + destination)"
+            "Gen2 pattern is simpler: only 2 queries needed (source + destination)",
+            "CRITICAL: You MUST add connections for BOTH source AND destination using 'add_connection_to_dataflow'. Find matching connections from 'list_connections' by type and path."
         ]
     },
     "gen1": {
@@ -127,7 +129,8 @@
             "Add 'nullable' prefix to destination column types: nullable Text.Type",
             "Use ? operator for optional navigation: Table{[Id = \"x\"]}?[Data]?",
             "The [Staging] attribute is required on write queries",
-            "Gen1 requires more queries: DefaultModelStorage, explicit column mapping, Pipeline.ExecuteAction"
+            "Gen1 requires more queries: DefaultModelStorage, explicit column mapping, Pipeline.ExecuteAction",
+            "CRITICAL: You MUST add connections for BOTH source AND destination using 'add_connection_to_dataflow'. Find matching connections from 'list_connections' by type and path."
         ]
     },
     "sourceTypeKeywords": {
@@ -185,6 +188,5 @@
         "group",
         "total",
         "summarize"
-    ],
-    "connectionGuidance": "Before saving M queries to a dataflow, identify all data sources and destinations in the M code, find matching connections from list_connections by matching connectionDetails.type and connectionDetails.path, then add each connection to the dataflow using add_connection_to_dataflow. For ETL scenarios, you must add BOTH the source connection (e.g., SQL Server) AND the destination connection (e.g., Lakehouse) before saving the M document."
+    ]
 }
