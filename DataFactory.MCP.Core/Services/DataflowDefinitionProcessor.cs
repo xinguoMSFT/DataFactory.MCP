@@ -271,7 +271,7 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
                         // Continue looking back in case of multi-line attributes
                     }
                     // Also handle continuation lines of multi-line attributes (lines that don't start with [ or shared)
-                    else if (prevTrimmed.Contains("]]]}]") || prevTrimmed.Contains("]]") || 
+                    else if (prevTrimmed.Contains("]]]}]") || prevTrimmed.Contains("]]") ||
                              prevTrimmed.StartsWith("Settings") || prevTrimmed.StartsWith("Definition"))
                     {
                         queryStartIndex = k;
@@ -532,9 +532,9 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
 
         // Build new queriesMetadata from the parsed queries
         var newQueriesMetadata = new Dictionary<string, object>();
-        
+
         // Get existing queriesMetadata to preserve queryIds where possible
-        var existingQueriesMetadata = metadataDict.ContainsKey("queriesMetadata") 
+        var existingQueriesMetadata = metadataDict.ContainsKey("queriesMetadata")
             ? metadataDict["queriesMetadata"] as Dictionary<string, object> ?? new Dictionary<string, object>()
             : new Dictionary<string, object>();
 
@@ -570,7 +570,7 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
         }
 
         metadataDict["queriesMetadata"] = newQueriesMetadata;
-        
+
         _logger.LogDebug("Synced query metadata: {QueryCount} queries, {HiddenCount} hidden",
             parsedQueries.Count, destinationQueries.Count);
 
