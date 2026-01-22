@@ -18,17 +18,14 @@ public interface IDataflowDefinitionProcessor
     DecodedDataflowDefinition DecodeDefinition(DataflowDefinition rawDefinition);
 
     /// <summary>
-    /// Adds a connection to an existing dataflow definition
+    /// Adds one or more connections to an existing dataflow definition
     /// </summary>
     /// <param name="definition">The dataflow definition to modify</param>
-    /// <param name="connection">The connection to add</param>
-    /// <param name="connectionId">The connection ID</param>
+    /// <param name="connections">List of tuples containing (connection, connectionId, clusterId) for each connection to add</param>
     /// <returns>Updated dataflow definition</returns>
-    DataflowDefinition AddConnectionToDefinition(
+    DataflowDefinition AddConnectionsToDefinition(
         DataflowDefinition definition,
-        Connection connection,
-        string connectionId,
-        string? clusterId);
+        IEnumerable<(Connection Connection, string ConnectionId, string? ClusterId)> connections);
 
     /// <summary>
     /// Adds or updates a query in an existing dataflow definition

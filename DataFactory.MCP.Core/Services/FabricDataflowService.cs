@@ -199,21 +199,25 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
                ?? throw new InvalidOperationException("Failed to get dataflow definition response");
     }
 
-    public async Task<UpdateDataflowDefinitionResponse> AddConnectionToDataflowAsync(
+    public async Task<UpdateDataflowDefinitionResponse> AddConnectionsToDataflowAsync(
         string workspaceId,
         string dataflowId,
-        string connectionId,
-        Connection connection)
+        IEnumerable<(string ConnectionId, Connection Connection)> connections)
     {
+        var connectionsList = connections.ToList();
         try
         {
             ValidateGuids(
                 (workspaceId, nameof(workspaceId)),
-                (dataflowId, nameof(dataflowId)),
-                (connectionId, nameof(connectionId)));
+                (dataflowId, nameof(dataflowId)));
 
-            Logger.LogInformation("Adding connection {ConnectionId} to dataflow {DataflowId} in workspace {WorkspaceId}",
-                connectionId, dataflowId, workspaceId);
+            foreach (var (connectionId, _) in connectionsList)
+            {
+                ValidateGuids((connectionId, nameof(connectionId)));
+            }
+
+            Logger.LogInformation("Adding {Count} connection(s) to dataflow {DataflowId} in workspace {WorkspaceId}",
+                connectionsList.Count, dataflowId, workspaceId);
 
             // Step 1: Get current dataflow definition via HTTP
             var currentDefinition = await GetDataflowDefinitionAsync(workspaceId, dataflowId);
@@ -228,22 +232,26 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
                 };
             }
 
-            // Step 2: Get the ClusterId for this connection from the Power BI v2.0 API
+            // Step 2: Get the ClusterId for each connection from the Power BI v2.0 API
             // This is required for proper credential binding in the dataflow
-            string? clusterId = await GetClusterId(connectionId);
+            var connectionsWithClusterIds = new List<(Connection Connection, string ConnectionId, string? ClusterId)>();
+            foreach (var (connectionId, connection) in connectionsList)
+            {
+                string? clusterId = await GetClusterId(connectionId);
+                connectionsWithClusterIds.Add((connection, connectionId, clusterId));
+            }
 
-            // Step 3: Process connection addition via business logic service
-            var updatedDefinition = _definitionProcessor.AddConnectionToDefinition(
+            // Step 3: Process connection additions via business logic service
+            var updatedDefinition = _definitionProcessor.AddConnectionsToDefinition(
                 currentDefinition,
-                connection,
-                connectionId,
-                clusterId);
+                connectionsWithClusterIds);
 
             // Step 4: Update via HTTP
             await UpdateDataflowDefinitionAsync(workspaceId, dataflowId, updatedDefinition);
 
-            Logger.LogInformation("Successfully added connection {ConnectionId} to dataflow {DataflowId}",
-                connectionId, dataflowId);
+            var connectionIds = string.Join(", ", connectionsList.Select(c => c.ConnectionId));
+            Logger.LogInformation("Successfully added connection(s) {ConnectionIds} to dataflow {DataflowId}",
+                connectionIds, dataflowId);
 
             return new UpdateDataflowDefinitionResponse
             {
@@ -254,8 +262,9 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error adding connection {ConnectionId} to dataflow {DataflowId} in workspace {WorkspaceId}",
-                connectionId, dataflowId, workspaceId);
+            var connectionIds = string.Join(", ", connectionsList.Select(c => c.ConnectionId));
+            Logger.LogError(ex, "Error adding connection(s) {ConnectionIds} to dataflow {DataflowId} in workspace {WorkspaceId}",
+                connectionIds, dataflowId, workspaceId);
 
             return new UpdateDataflowDefinitionResponse
             {

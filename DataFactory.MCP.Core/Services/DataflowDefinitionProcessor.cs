@@ -64,11 +64,9 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
         return decoded;
     }
 
-    public DataflowDefinition AddConnectionToDefinition(
+    public DataflowDefinition AddConnectionsToDefinition(
         DataflowDefinition definition,
-        Connection connection,
-        string connectionId,
-        string? clusterId)
+        IEnumerable<(Connection Connection, string ConnectionId, string? ClusterId)> connections)
     {
         // Find and update the queryMetadata.json part
         var queryMetadataPart = definition.Parts?.FirstOrDefault(p =>
@@ -83,8 +81,8 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
             using var document = JsonDocument.Parse(currentMetadataJson);
             var metadata = document.RootElement;
 
-            // Create updated metadata with new connection
-            var updatedMetadata = CreateUpdatedQueryMetadata(metadata, connection, connectionId, clusterId);
+            // Create updated metadata with all connections
+            var updatedMetadata = CreateUpdatedQueryMetadataWithConnections(metadata, connections);
 
             // Encode updated metadata back to Base64
             var updatedMetadataJson = JsonSerializer.Serialize(updatedMetadata, JsonSerializerOptionsProvider.Indented);
@@ -95,11 +93,9 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
         return definition;
     }
 
-    private Dictionary<string, object> CreateUpdatedQueryMetadata(
+    private Dictionary<string, object> CreateUpdatedQueryMetadataWithConnections(
         JsonElement currentMetadata,
-        Connection connection,
-        string connectionId,
-        string? clusterId)
+        IEnumerable<(Connection Connection, string ConnectionId, string? ClusterId)> connections)
     {
         // Convert the entire JsonElement to a Dictionary for easier manipulation
         var metadataDict = _dataTransformationService.JsonElementToDictionary(currentMetadata);
@@ -118,52 +114,54 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
 
         var connectionsList = metadataDict["connections"] as List<object> ?? new List<object>();
 
-        // Build the connectionId value for the metadata
-        // If we have a ClusterId, use the format: {"ClusterId":"...","DatasourceId":"..."}
-        // This format is required for proper credential binding in Fabric dataflows
-        string connectionIdValue;
-        if (!string.IsNullOrEmpty(clusterId))
+        foreach (var (connection, connectionId, clusterId) in connections)
         {
-            // Use the ClusterId + DatasourceId format that Fabric UI uses
-            // This enables proper credential binding for query execution
-            var connectionIdObj = new Dictionary<string, string>
+            // Build the connectionId value for the metadata
+            // If we have a ClusterId, use the format: {"ClusterId":"...","DatasourceId":"..."}
+            // This format is required for proper credential binding in Fabric dataflows
+            string connectionIdValue;
+            if (!string.IsNullOrEmpty(clusterId))
             {
-                ["ClusterId"] = clusterId,
-                ["DatasourceId"] = connectionId
-            };
-            connectionIdValue = JsonSerializer.Serialize(connectionIdObj);
-        }
-        else
-        {
-            // Fall back to plain connectionId if ClusterId is not available
-            connectionIdValue = connectionId;
-        }
-
-        // Add new connection if it doesn't already exist
-        var newConnection = new Dictionary<string, object>
-        {
-            ["connectionId"] = connectionIdValue,
-            ["kind"] = connection.ConnectionDetails.Type,
-            ["path"] = connection.ConnectionDetails.Path
-        };
-
-        // Check if connection already exists (check for both old format and new Fabric format)
-        bool connectionExists = connectionsList.Any(conn =>
-        {
-            if (conn is Dictionary<string, object> dict && dict.ContainsKey("connectionId"))
-            {
-                var existingConnectionId = dict["connectionId"]?.ToString();
-                // Check if it matches the plain connectionId or the Fabric format
-                return existingConnectionId == connectionId ||
-                       existingConnectionId == connectionIdValue ||
-                       existingConnectionId?.Contains($"\"DatasourceId\":\"{connectionId}\"") == true;
+                // Use the ClusterId + DatasourceId format that Fabric UI uses
+                // This enables proper credential binding for query execution
+                var connectionIdObj = new Dictionary<string, string>
+                {
+                    ["ClusterId"] = clusterId,
+                    ["DatasourceId"] = connectionId
+                };
+                connectionIdValue = JsonSerializer.Serialize(connectionIdObj);
             }
-            return false;
-        });
+            else
+            {
+                // Fall back to plain connectionId if ClusterId is not available
+                connectionIdValue = connectionId;
+            }
 
-        if (!connectionExists)
-        {
-            connectionsList.Add(newConnection);
+            // Check if connection already exists (check for both old format and new Fabric format)
+            bool connectionExists = connectionsList.Any(conn =>
+            {
+                if (conn is Dictionary<string, object> dict && dict.ContainsKey("connectionId"))
+                {
+                    var existingConnectionId = dict["connectionId"]?.ToString();
+                    // Check if it matches the plain connectionId or the Fabric format
+                    return existingConnectionId == connectionId ||
+                           existingConnectionId == connectionIdValue ||
+                           existingConnectionId?.Contains($"\"DatasourceId\":\"{connectionId}\"") == true;
+                }
+                return false;
+            });
+
+            if (!connectionExists)
+            {
+                // Add new connection
+                var newConnection = new Dictionary<string, object>
+                {
+                    ["connectionId"] = connectionIdValue,
+                    ["kind"] = connection.ConnectionDetails.Type,
+                    ["path"] = connection.ConnectionDetails.Path
+                };
+                connectionsList.Add(newConnection);
+            }
         }
 
         metadataDict["connections"] = connectionsList;
