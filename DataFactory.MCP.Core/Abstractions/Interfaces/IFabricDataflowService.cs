@@ -95,10 +95,14 @@ public interface IFabricDataflowService
     /// <param name="dataflowId">The dataflow ID to update</param>
     /// <param name="queryName">The name of the query to add or update</param>
     /// <param name="mCode">The M (Power Query) code for the query</param>
+    /// <param name="attribute">Optional attribute for the query (e.g., [DataDestinations = ...])</param>
+    /// <param name="sectionAttribute">Optional section-level attribute (e.g., [StagingDefinition = [Kind = "FastCopy"]])</param>
     /// <returns>Update operation result</returns>
     Task<UpdateDataflowDefinitionResponse> AddOrUpdateQueryAsync(
         string workspaceId,
         string dataflowId,
         string queryName,
-        string mCode);
+        string mCode,
+        string? attribute = null,
+        string? sectionAttribute = null);
 }

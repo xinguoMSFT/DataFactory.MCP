@@ -267,6 +267,17 @@ If validation fails, it returns detailed error information to help fix the docum
             var results = new List<object>();
             var allSuccess = true;
 
+            // Extract section-level attribute (e.g., [StagingDefinition = [Kind = "FastCopy"]])
+            string? sectionAttribute = null;
+            var stagingMatch = System.Text.RegularExpressions.Regex.Match(
+                mDocument,
+                @"^\s*(\[StagingDefinition\s*=\s*\[[^\]]+\]\])",
+                System.Text.RegularExpressions.RegexOptions.Multiline);
+            if (stagingMatch.Success)
+            {
+                sectionAttribute = stagingMatch.Groups[1].Value.Trim();
+            }
+
             foreach (var query in queries)
             {
                 try
@@ -275,7 +286,9 @@ If validation fails, it returns detailed error information to help fix the docum
                         workspaceId,
                         dataflowId,
                         query.Name,
-                        query.Code);
+                        query.Code,
+                        query.Attribute,
+                        sectionAttribute);
 
                     results.Add(new
                     {

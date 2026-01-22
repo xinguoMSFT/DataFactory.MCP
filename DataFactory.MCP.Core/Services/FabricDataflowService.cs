@@ -319,7 +319,9 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
         string workspaceId,
         string dataflowId,
         string queryName,
-        string mCode)
+        string mCode,
+        string? attribute = null,
+        string? sectionAttribute = null)
     {
         try
         {
@@ -350,7 +352,9 @@ public class FabricDataflowService : FabricServiceBase, IFabricDataflowService
             var updatedDefinition = _definitionProcessor.AddOrUpdateQueryInDefinition(
                 currentDefinition,
                 queryName,
-                mCode);
+                mCode,
+                attribute,
+                sectionAttribute);
 
             // Step 3: Update via HTTP
             await UpdateDataflowDefinitionAsync(workspaceId, dataflowId, updatedDefinition);

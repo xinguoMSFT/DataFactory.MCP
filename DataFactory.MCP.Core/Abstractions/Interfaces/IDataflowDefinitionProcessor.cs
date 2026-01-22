@@ -36,9 +36,13 @@ public interface IDataflowDefinitionProcessor
     /// <param name="definition">The dataflow definition to modify</param>
     /// <param name="queryName">The name of the query to add or update</param>
     /// <param name="mCode">The M (Power Query) code for the query</param>
+    /// <param name="attribute">Optional attribute for the query (e.g., [DataDestinations = ...])</param>
+    /// <param name="sectionAttribute">Optional section-level attribute (e.g., [StagingDefinition = [Kind = "FastCopy"]])</param>
     /// <returns>Updated dataflow definition</returns>
     DataflowDefinition AddOrUpdateQueryInDefinition(
         DataflowDefinition definition,
         string queryName,
-        string mCode);
+        string mCode,
+        string? attribute = null,
+        string? sectionAttribute = null);
 }

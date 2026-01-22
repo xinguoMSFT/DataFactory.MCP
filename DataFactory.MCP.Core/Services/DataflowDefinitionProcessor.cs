@@ -167,7 +167,9 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
     public DataflowDefinition AddOrUpdateQueryInDefinition(
         DataflowDefinition definition,
         string queryName,
-        string mCode)
+        string mCode,
+        string? attribute = null,
+        string? sectionAttribute = null)
     {
         // Step 1: Update the mashup.pq file with the new/updated query
         var mashupPart = definition.Parts?.FirstOrDefault(p =>
@@ -178,7 +180,7 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
             var decodedBytes = Convert.FromBase64String(mashupPart.Payload);
             var currentMashup = Encoding.UTF8.GetString(decodedBytes);
 
-            var updatedMashup = UpdateMashupWithQuery(currentMashup, queryName, mCode);
+            var updatedMashup = UpdateMashupWithQuery(currentMashup, queryName, mCode, attribute, sectionAttribute);
 
             var updatedBytes = Encoding.UTF8.GetBytes(updatedMashup);
             mashupPart.Payload = Convert.ToBase64String(updatedBytes);
@@ -206,26 +208,45 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
         return definition;
     }
 
-    private string UpdateMashupWithQuery(string currentMashup, string queryName, string mCode)
+    private string UpdateMashupWithQuery(string currentMashup, string queryName, string mCode, string? attribute = null, string? sectionAttribute = null)
     {
         // Normalize query name for M code (handle special characters)
         var normalizedQueryName = NormalizeQueryName(queryName);
         var sharedDeclaration = $"shared {normalizedQueryName} =";
 
-        // Check if query already exists
+        // Check if query already exists - also check for attribute prefix
         var lines = currentMashup.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).ToList();
         var queryStartIndex = -1;
         var queryEndIndex = -1;
 
         for (int i = 0; i < lines.Count; i++)
         {
-            if (lines[i].TrimStart().StartsWith(sharedDeclaration, StringComparison.OrdinalIgnoreCase))
+            var trimmedLine = lines[i].TrimStart();
+            // Check if this line or the next line (after attribute) contains the shared declaration
+            if (trimmedLine.StartsWith(sharedDeclaration, StringComparison.OrdinalIgnoreCase) ||
+                (trimmedLine.StartsWith("[") && i + 1 < lines.Count &&
+                 lines[i + 1].TrimStart().StartsWith(sharedDeclaration, StringComparison.OrdinalIgnoreCase)))
             {
-                queryStartIndex = i;
-                // Find the end of this query (next "shared" or end of file)
-                for (int j = i + 1; j < lines.Count; j++)
+                // If this line is an attribute, start from here
+                if (trimmedLine.StartsWith("[") && !trimmedLine.StartsWith("[StagingDefinition", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (lines[j].TrimStart().StartsWith("shared ", StringComparison.OrdinalIgnoreCase))
+                    queryStartIndex = i;
+                }
+                else if (trimmedLine.StartsWith(sharedDeclaration, StringComparison.OrdinalIgnoreCase))
+                {
+                    queryStartIndex = i;
+                }
+                else
+                {
+                    continue;
+                }
+
+                // Find the end of this query (next attribute/shared or end of file)
+                for (int j = queryStartIndex + 1; j < lines.Count; j++)
+                {
+                    var nextTrimmed = lines[j].TrimStart();
+                    if (nextTrimmed.StartsWith("shared ", StringComparison.OrdinalIgnoreCase) ||
+                        (nextTrimmed.StartsWith("[") && !nextTrimmed.StartsWith("[StagingDefinition", StringComparison.OrdinalIgnoreCase)))
                     {
                         queryEndIndex = j - 1;
                         break;
@@ -236,8 +257,8 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
             }
         }
 
-        // Build the new query declaration
-        var newQueryCode = BuildQueryDeclaration(normalizedQueryName, mCode);
+        // Build the new query declaration with attribute
+        var newQueryCode = BuildQueryDeclaration(normalizedQueryName, mCode, attribute);
 
         if (queryStartIndex >= 0)
         {
@@ -251,12 +272,23 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
             // Ensure there's a section declaration if the mashup is empty or only has section
             if (string.IsNullOrWhiteSpace(currentMashup) || currentMashup.Trim() == "section Section1;")
             {
-                return $"section Section1;\r\n{newQueryCode}";
+                var sectionDecl = !string.IsNullOrEmpty(sectionAttribute)
+                    ? $"{sectionAttribute}\r\nsection Section1;"
+                    : "section Section1;";
+                return $"{sectionDecl}\r\n{newQueryCode}";
             }
             lines.Add(newQueryCode);
         }
 
-        return string.Join("\r\n", lines);
+        // Handle section-level attribute if provided and not already present
+        var result = string.Join("\r\n", lines);
+        if (!string.IsNullOrEmpty(sectionAttribute) && !result.Contains("[StagingDefinition"))
+        {
+            // Insert section attribute before "section Section1;"
+            result = result.Replace("section Section1;", $"{sectionAttribute}\r\nsection Section1;");
+        }
+
+        return result;
     }
 
     private string NormalizeQueryName(string queryName)
@@ -269,7 +301,7 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
         return queryName;
     }
 
-    private string BuildQueryDeclaration(string normalizedQueryName, string mCode)
+    private string BuildQueryDeclaration(string normalizedQueryName, string mCode, string? attribute = null)
     {
         // Ensure the M code starts with "let" and ends with proper structure
         var trimmedCode = mCode.Trim();
@@ -278,6 +310,12 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
         if (!trimmedCode.StartsWith("let", StringComparison.OrdinalIgnoreCase))
         {
             trimmedCode = $"let\n    Source = {trimmedCode}\nin\n    Source";
+        }
+
+        // Build declaration with optional attribute
+        if (!string.IsNullOrEmpty(attribute))
+        {
+            return $"{attribute}\r\nshared {normalizedQueryName} = {trimmedCode};";
         }
 
         // Ensure it ends with a semicolon for the shared declaration
