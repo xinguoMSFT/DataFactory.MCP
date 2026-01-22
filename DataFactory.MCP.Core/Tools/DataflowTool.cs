@@ -176,43 +176,72 @@ public class DataflowTool
         }
     }
 
-    [McpServerTool, Description(@"Adds a connection to an existing dataflow by updating its definition. Retrieves the current dataflow definition, gets connection details, and updates the queryMetadata.json to include the new connection.")]
+    [McpServerTool, Description(@"Adds one or more connections to an existing dataflow by updating its definition. Retrieves the current dataflow definition, gets connection details, and updates the queryMetadata.json to include the new connections.")]
     public async Task<string> AddConnectionToDataflowAsync(
         [Description("The workspace ID containing the dataflow (required)")] string workspaceId,
         [Description("The dataflow ID to update (required)")] string dataflowId,
-        [Description("The connection ID to add to the dataflow (required)")] string connectionId)
+        [Description("The connection ID(s) to add to the dataflow. Can be a single connection ID string or an array of connection IDs (required)")] object connectionIds)
     {
         try
         {
             _validationService.ValidateRequiredString(workspaceId, nameof(workspaceId));
             _validationService.ValidateRequiredString(dataflowId, nameof(dataflowId));
-            _validationService.ValidateRequiredString(connectionId, nameof(connectionId));
 
-            // Get connection details using the dedicated connection service
-            var connection = await _connectionService.GetConnectionAsync(connectionId);
-            if (connection == null)
+            // Parse connectionIds - can be a single string or an array
+            var connectionIdList = ParseConnectionIds(connectionIds);
+            if (connectionIdList.Count == 0)
             {
                 var errorResponse = new
                 {
                     Success = false,
                     DataflowId = dataflowId,
                     WorkspaceId = workspaceId,
-                    ConnectionId = connectionId,
-                    Message = $"Connection with ID '{connectionId}' not found"
+                    Message = "At least one connection ID is required"
                 };
                 return errorResponse.ToMcpJson();
             }
 
-            var result = await _dataflowService.AddConnectionToDataflowAsync(workspaceId, dataflowId, connectionId, connection);
+            // Get connection details for all connection IDs
+            var connectionsToAdd = new List<(string ConnectionId, Models.Connection.Connection Connection)>();
+            var notFoundIds = new List<string>();
+
+            foreach (var connectionId in connectionIdList)
+            {
+                var connection = await _connectionService.GetConnectionAsync(connectionId);
+                if (connection == null)
+                {
+                    notFoundIds.Add(connectionId);
+                }
+                else
+                {
+                    connectionsToAdd.Add((connectionId, connection));
+                }
+            }
+
+            if (notFoundIds.Count > 0)
+            {
+                var errorResponse = new
+                {
+                    Success = false,
+                    DataflowId = dataflowId,
+                    WorkspaceId = workspaceId,
+                    ConnectionIds = notFoundIds,
+                    Message = $"Connection(s) not found: {string.Join(", ", notFoundIds)}"
+                };
+                return errorResponse.ToMcpJson();
+            }
+
+            var result = await _dataflowService.AddConnectionsToDataflowAsync(workspaceId, dataflowId, connectionsToAdd);
 
             var response = new
             {
                 Success = result.Success,
                 DataflowId = result.DataflowId,
                 WorkspaceId = result.WorkspaceId,
-                ConnectionId = connectionId,
+                ConnectionIds = connectionIdList,
+                ConnectionCount = connectionIdList.Count,
                 Message = result.Success
-                    ? $"Successfully added connection {connectionId} to dataflow {dataflowId}"
+                    ? $"Successfully added {connectionIdList.Count} connection(s) to dataflow {dataflowId}"
                     : result.ErrorMessage
             };
 
@@ -232,8 +261,62 @@ public class DataflowTool
         }
         catch (Exception ex)
         {
-            return ex.ToOperationError("adding connection to dataflow").ToMcpJson();
+            return ex.ToOperationError("adding connection(s) to dataflow").ToMcpJson();
         }
+    }
+
+    private static List<string> ParseConnectionIds(object connectionIds)
+    {
+        var result = new List<string>();
+
+        if (connectionIds is string singleId)
+        {
+            if (!string.IsNullOrWhiteSpace(singleId))
+            {
+                result.Add(singleId);
+            }
+        }
+        else if (connectionIds is System.Text.Json.JsonElement jsonElement)
+        {
+            if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                var value = jsonElement.GetString();
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    result.Add(value);
+                }
+            }
+            else if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var element in jsonElement.EnumerateArray())
+                {
+                    if (element.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        var value = element.GetString();
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            result.Add(value);
+                        }
+                    }
+                }
+            }
+        }
+        else if (connectionIds is IEnumerable<string> stringArray)
+        {
+            result.AddRange(stringArray.Where(s => !string.IsNullOrWhiteSpace(s)));
+        }
+        else if (connectionIds is IEnumerable<object> objArray)
+        {
+            foreach (var obj in objArray)
+            {
+                if (obj is string str && !string.IsNullOrWhiteSpace(str))
+                {
+                    result.Add(str);
+                }
+            }
+        }
+
+        return result;
     }
 
     [McpServerTool, Description(@"Adds or updates a query in an existing dataflow by updating its definition. The query will be added to the mashup.pq file and registered in queryMetadata.json.")]

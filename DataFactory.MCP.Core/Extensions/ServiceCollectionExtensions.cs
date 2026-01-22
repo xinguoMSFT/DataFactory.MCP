@@ -87,7 +87,8 @@ public static class ServiceCollectionExtensions
             .WithTools<WorkspacesTool>()
             .WithTools<DataflowTool>()
             .WithTools<CapacityTool>()
-            .WithTools<AzureResourceDiscoveryTool>();
+            .WithTools<AzureResourceDiscoveryTool>()
+            .WithTools<MDocumentTool>();
     }
 
     /// <summary>

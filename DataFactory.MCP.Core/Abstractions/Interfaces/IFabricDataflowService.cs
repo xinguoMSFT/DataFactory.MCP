@@ -75,18 +75,16 @@ public interface IFabricDataflowService
         DataflowDefinition definition);
 
     /// <summary>
-    /// Adds a connection to an existing dataflow by updating its definition
+    /// Adds one or more connections to an existing dataflow by updating its definition
     /// </summary>
     /// <param name="workspaceId">The workspace ID containing the dataflow</param>
     /// <param name="dataflowId">The dataflow ID to update</param>
-    /// <param name="connectionId">The connection ID to add</param>
-    /// <param name="connection">The connection object with details</param>
+    /// <param name="connections">List of tuples containing (connectionId, connection) for each connection to add</param>
     /// <returns>Update operation result</returns>
-    Task<UpdateDataflowDefinitionResponse> AddConnectionToDataflowAsync(
+    Task<UpdateDataflowDefinitionResponse> AddConnectionsToDataflowAsync(
         string workspaceId,
         string dataflowId,
-        string connectionId,
-        DataFactory.MCP.Models.Connection.Connection connection);
+        IEnumerable<(string ConnectionId, DataFactory.MCP.Models.Connection.Connection Connection)> connections);
 
     /// <summary>
     /// Adds or updates a query in an existing dataflow by updating its definition
@@ -95,10 +93,30 @@ public interface IFabricDataflowService
     /// <param name="dataflowId">The dataflow ID to update</param>
     /// <param name="queryName">The name of the query to add or update</param>
     /// <param name="mCode">The M (Power Query) code for the query</param>
+    /// <param name="attribute">Optional attribute for the query (e.g., [DataDestinations = ...])</param>
+    /// <param name="sectionAttribute">Optional section-level attribute (e.g., [StagingDefinition = [Kind = "FastCopy"]])</param>
     /// <returns>Update operation result</returns>
     Task<UpdateDataflowDefinitionResponse> AddOrUpdateQueryAsync(
         string workspaceId,
         string dataflowId,
         string queryName,
-        string mCode);
+        string mCode,
+        string? attribute = null,
+        string? sectionAttribute = null);
+
+    /// <summary>
+    /// Syncs a dataflow with a new M document by replacing the entire mashup content.
+    /// This is a declarative approach: the provided document becomes the complete state.
+    /// Queries not in the new document will be removed from metadata.
+    /// </summary>
+    /// <param name="workspaceId">The workspace ID containing the dataflow</param>
+    /// <param name="dataflowId">The dataflow ID to sync</param>
+    /// <param name="newMashupDocument">The complete M section document</param>
+    /// <param name="parsedQueries">List of parsed queries from the document</param>
+    /// <returns>Update operation result</returns>
+    Task<UpdateDataflowDefinitionResponse> SyncMashupDocumentAsync(
+        string workspaceId,
+        string dataflowId,
+        string newMashupDocument,
+        IList<(string QueryName, string MCode, string? Attribute)> parsedQueries);
 }
