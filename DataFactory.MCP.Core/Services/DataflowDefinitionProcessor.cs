@@ -202,7 +202,10 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
             using var document = JsonDocument.Parse(currentMetadataJson);
             var metadata = document.RootElement;
 
-            var updatedMetadata = CreateUpdatedQueryMetadataWithQuery(metadata, queryName);
+            // Extract destination query name from [DataDestinations] attribute if present
+            var referencedDestinationQuery = ExtractDestinationQueryNameFromAttribute(attribute);
+
+            var updatedMetadata = CreateUpdatedQueryMetadataWithQuery(metadata, queryName, referencedDestinationQuery);
 
             var updatedMetadataJson = JsonSerializer.Serialize(updatedMetadata, JsonSerializerOptionsProvider.Indented);
             var updatedBytes = Encoding.UTF8.GetBytes(updatedMetadataJson);
@@ -210,6 +213,25 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
         }
 
         return definition;
+    }
+
+    /// <summary>
+    /// Extracts the destination query name from a [DataDestinations] attribute.
+    /// Example: [DataDestinations = {[Definition = [Kind = "Reference", QueryName = "Customers_DataDestination", ...]]}]
+    /// Returns: "Customers_DataDestination"
+    /// </summary>
+    private string? ExtractDestinationQueryNameFromAttribute(string? attribute)
+    {
+        if (string.IsNullOrEmpty(attribute) || !attribute.Contains("[DataDestinations"))
+            return null;
+
+        // Parse QueryName from the attribute using regex
+        var match = System.Text.RegularExpressions.Regex.Match(
+            attribute,
+            @"QueryName\s*=\s*""([^""]+)""",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        return match.Success ? match.Groups[1].Value : null;
     }
 
     private string UpdateMashupWithQuery(string currentMashup, string queryName, string mCode, string? attribute = null, string? sectionAttribute = null)
@@ -328,7 +350,8 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
 
     private Dictionary<string, object> CreateUpdatedQueryMetadataWithQuery(
         JsonElement currentMetadata,
-        string queryName)
+        string queryName,
+        string? referencedDestinationQuery = null)
     {
         var metadataDict = _dataTransformationService.JsonElementToDictionary(currentMetadata);
 
@@ -347,46 +370,46 @@ public class DataflowDefinitionProcessor : IDataflowDefinitionProcessor
         var queriesMetadata = metadataDict["queriesMetadata"] as Dictionary<string, object>
             ?? new Dictionary<string, object>();
 
-        // Check if query already exists
+        // Add/update the current query
         if (!queriesMetadata.ContainsKey(queryName))
         {
-            // Add new query metadata with a generated GUID
             var queryId = Guid.NewGuid().ToString();
-
-            // Determine if this is a DataDestination query (helper query for ETL)
-            var isDataDestinationQuery = queryName.EndsWith("_DataDestination", StringComparison.OrdinalIgnoreCase);
-
             var queryMetadataEntry = new Dictionary<string, object>
             {
                 ["queryId"] = queryId,
                 ["queryName"] = queryName,
-                ["loadEnabled"] = false  // Prevent loading to default destination
+                ["loadEnabled"] = false
             };
-
-            // DataDestination queries should be hidden from UI
-            if (isDataDestinationQuery)
-            {
-                queryMetadataEntry["isHidden"] = true;
-            }
-
             queriesMetadata[queryName] = queryMetadataEntry;
         }
-        else
+        else if (queriesMetadata[queryName] is Dictionary<string, object> existingEntry)
         {
-            // Update existing query to ensure loadEnabled is set
-            if (queriesMetadata[queryName] is Dictionary<string, object> existingEntry)
+            if (!existingEntry.ContainsKey("loadEnabled"))
             {
-                if (!existingEntry.ContainsKey("loadEnabled"))
-                {
-                    existingEntry["loadEnabled"] = false;
-                }
+                existingEntry["loadEnabled"] = false;
+            }
+        }
 
-                // Ensure DataDestination queries are hidden
-                var isDataDestinationQuery = queryName.EndsWith("_DataDestination", StringComparison.OrdinalIgnoreCase);
-                if (isDataDestinationQuery && !existingEntry.ContainsKey("isHidden"))
+        // If this query has a [DataDestinations] attribute referencing another query,
+        // mark that referenced query as hidden (it's a destination helper query)
+        if (!string.IsNullOrEmpty(referencedDestinationQuery))
+        {
+            if (queriesMetadata.ContainsKey(referencedDestinationQuery) &&
+                queriesMetadata[referencedDestinationQuery] is Dictionary<string, object> destEntry)
+            {
+                destEntry["isHidden"] = true;
+            }
+            // If the destination query doesn't exist yet, create a placeholder that will be hidden
+            // (it will be fully populated when the destination query is added)
+            else if (!queriesMetadata.ContainsKey(referencedDestinationQuery))
+            {
+                queriesMetadata[referencedDestinationQuery] = new Dictionary<string, object>
                 {
-                    existingEntry["isHidden"] = true;
-                }
+                    ["queryId"] = Guid.NewGuid().ToString(),
+                    ["queryName"] = referencedDestinationQuery,
+                    ["isHidden"] = true,
+                    ["loadEnabled"] = false
+                };
             }
         }
 

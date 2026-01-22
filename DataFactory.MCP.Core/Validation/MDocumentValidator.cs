@@ -50,16 +50,6 @@ public class MDocumentValidator
             warnings.Add($"Mismatched let/in keywords: {letCount} 'let', {inCount} 'in'. This may be intentional for simple expressions.");
         }
 
-        // Pattern-specific validations
-        if (isGen2)
-        {
-            ValidateGen2Pattern(document, warnings, suggestions);
-        }
-        else if (HasDestination(document))
-        {
-            ValidateGen1Pattern(document, suggestions);
-        }
-
         return new MDocumentValidationResult
         {
             IsValid = errors.Count == 0,
@@ -77,43 +67,6 @@ public class MDocumentValidator
         if (openCount != closeCount)
         {
             errors.Add($"Unbalanced {name}: {openCount} opening, {closeCount} closing");
-        }
-    }
-
-    private static bool HasDestination(string document)
-    {
-        return document.Contains("Lakehouse.Contents") || document.Contains("Warehouse.Contents");
-    }
-
-    private static void ValidateGen2Pattern(string document, List<string> warnings, List<string> suggestions)
-    {
-        if (!document.Contains("[DataDestinations"))
-        {
-            warnings.Add("Gen2 FastCopy pattern detected but no [DataDestinations] attribute found on source query");
-        }
-        if (!document.Contains("_DataDestination"))
-        {
-            suggestions.Add("Gen2 pattern typically uses '{QueryName}_DataDestination' naming convention for destination queries");
-        }
-        if (!document.Contains("HierarchicalNavigation"))
-        {
-            suggestions.Add("Gen2 Lakehouse destination should use: Lakehouse.Contents([HierarchicalNavigation = null, CreateNavigationProperties = false, EnableFolding = false])");
-        }
-    }
-
-    private static void ValidateGen1Pattern(string document, List<string> suggestions)
-    {
-        if (!document.Contains("DefaultModelStorage") && !document.Contains("[DataDestinations"))
-        {
-            suggestions.Add("Consider using Gen2 FastCopy pattern with [StagingDefinition = [Kind = \"FastCopy\"]] or add 'DefaultModelStorage' query for Gen1 write operations");
-        }
-        if (!document.Contains("Pipeline.ExecuteAction") && !document.Contains("[DataDestinations"))
-        {
-            suggestions.Add("For Gen1: Add a write query using 'Pipeline.ExecuteAction'. For Gen2: Add [DataDestinations] attribute to source query");
-        }
-        if (!document.Contains("[Staging") && !document.Contains("[StagingDefinition"))
-        {
-            suggestions.Add("For Gen1: Write queries should have [Staging = \"DefaultModelStorage\"] attribute. For Gen2: Use [StagingDefinition = [Kind = \"FastCopy\"]] at section level");
         }
     }
 }
