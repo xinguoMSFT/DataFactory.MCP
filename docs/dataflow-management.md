@@ -11,6 +11,7 @@ The dataflow management tools allow you to:
 - **Execute** M (Power Query) queries against dataflows
 - **Add** connections to existing dataflows
 - **Add or update** queries in existing dataflows
+- **Validate and save** complete M section documents to dataflows
 - Navigate paginated results for large dataflow collections
 
 ## MCP Tools
@@ -244,6 +245,127 @@ add_or_update_query_in_dataflow(
   dataflowId: "87654321-4321-4321-4321-210987654321",
   queryName: "FilteredOrders",
   mCode: "let\n    Source = Sql.Database(\"server\", \"db\"),\n    Orders = Source{[Schema=\"dbo\", Item=\"Orders\"]}[Data],\n    FilteredRows = Table.SelectRows(Orders, each [Status] = \"Active\"),\n    SortedRows = Table.Sort(FilteredRows, {{\"OrderDate\", Order.Descending}})\nin\n    SortedRows"
+)
+```
+
+### validate_and_save_m_document
+
+**SAVE TOOL** - Use this AFTER authoring the M document to validate and save it to a dataflow.
+
+This tool:
+1. Validates the M document syntax and structure
+2. Extracts individual queries from the document
+3. **Replaces the entire dataflow** with the provided document (declarative sync)
+
+The M document should be a complete section document with all queries needed for the data flow. This is a **declarative approach**: the provided document becomes the entire desired state of the dataflow. The tool replaces the `mashup.pq` file and syncs `queryMetadata.json` to match the queries in your document.
+
+**Important**: This tool does NOT save queries individually. It performs a full replacement of the dataflow's M code. Any queries not included in your document will be removed from the dataflow.
+
+If validation fails, it returns detailed error information to help fix the document.
+
+#### Usage
+```
+validate_and_save_m_document(
+  workspaceId: "12345678-1234-1234-1234-123456789012",
+  dataflowId: "87654321-4321-4321-4321-210987654321",
+  mDocument: "section Section1;\n\nshared GetCustomers = let\n    Source = Sql.Database(\"server\", \"db\"),\n    Customers = Source{[Schema=\"dbo\", Item=\"Customers\"]}[Data]\nin\n    Customers;"
+)
+```
+
+#### Validate Only (without saving)
+```
+validate_and_save_m_document(
+  workspaceId: "12345678-1234-1234-1234-123456789012",
+  dataflowId: "87654321-4321-4321-4321-210987654321",
+  mDocument: "section Section1;\n\nshared MyQuery = let Source = ... in Source;",
+  validateOnly: true
+)
+```
+
+#### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `workspaceId` | Yes | The workspace ID containing the target dataflow |
+| `dataflowId` | Yes | The dataflow ID to save the document to |
+| `mDocument` | Yes | The complete M section document to validate and save. Should start with 'section Section1;' and contain all shared queries. |
+| `validateOnly` | No | If true, only validates without saving (defaults to false) |
+
+#### Response Format (Success)
+```json
+{
+  "Success": true,
+  "Stage": "SaveComplete",
+  "WorkspaceId": "12345678-1234-1234-1234-123456789012",
+  "DataflowId": "87654321-4321-4321-4321-210987654321",
+  "DetectedPattern": "Gen2 FastCopy",
+  "TotalQueries": 3,
+  "SavedQueries": 3,
+  "Message": "Successfully saved all 3 queries to dataflow"
+}
+```
+
+#### Response Format (Validation Only)
+```json
+{
+  "Success": true,
+  "Stage": "ValidationComplete",
+  "Message": "Document is valid and ready to save",
+  "DetectedPattern": "Gen1 Pipeline",
+  "ParsedQueries": [
+    { "Name": "GetCustomers", "CodeLength": 245, "HasAttribute": false },
+    { "Name": "TransformData", "CodeLength": 189, "HasAttribute": true }
+  ],
+  "QueryCount": 2,
+  "Warnings": [],
+  "Suggestions": []
+}
+```
+
+#### Response Format (Validation Error)
+```json
+{
+  "Success": false,
+  "Stage": "Validation",
+  "Errors": ["Missing section declaration", "Unclosed parenthesis at line 5"],
+  "Warnings": ["Query 'TempData' is not referenced by any other query"],
+  "Suggestions": ["Add 'section Section1;' at the beginning of the document"],
+  "Document": "shared MyQuery = ..."
+}
+```
+
+#### Response Format (Save Error)
+```json
+{
+  "Success": false,
+  "Stage": "Save",
+  "WorkspaceId": "12345678-1234-1234-1234-123456789012",
+  "DataflowId": "87654321-4321-4321-4321-210987654321",
+  "DetectedPattern": "Gen1 Pipeline",
+  "TotalQueries": 2,
+  "ErrorMessage": "Failed to retrieve current dataflow definition",
+  "Message": "Failed to save queries to dataflow"
+}
+```
+
+#### Examples
+
+**Save a complete M document with multiple queries:**
+```
+validate_and_save_m_document(
+  workspaceId: "12345678-1234-1234-1234-123456789012",
+  dataflowId: "87654321-4321-4321-4321-210987654321",
+  mDocument: "section Section1;\n\nshared Source = Sql.Database(\"server.database.windows.net\", \"mydb\");\n\nshared Customers = let\n    Data = Source{[Schema=\"dbo\", Item=\"Customers\"]}[Data],\n    Filtered = Table.SelectRows(Data, each [IsActive] = true)\nin\n    Filtered;\n\nshared Orders = let\n    Data = Source{[Schema=\"dbo\", Item=\"Orders\"]}[Data]\nin\n    Data;"
+)
+```
+
+**Validate a document before saving:**
+```
+validate_and_save_m_document(
+  workspaceId: "12345678-1234-1234-1234-123456789012",
+  dataflowId: "87654321-4321-4321-4321-210987654321",
+  mDocument: "section Section1;\n\nshared MyQuery = let Source = Web.Contents(\"https://api.example.com/data\") in Source;",
+  validateOnly: true
 )
 ```
 
