@@ -16,6 +16,6 @@ public static class WindowsServiceCollectionExtensions
     public static IMcpServerBuilder AddWindowsMcpTools(this IMcpServerBuilder mcpBuilder)
     {
         return mcpBuilder
-            .WithTools<WindowsCredentialTool>();
+            .WithTools<WindowsSystemInfoTool>();
     }
 }
