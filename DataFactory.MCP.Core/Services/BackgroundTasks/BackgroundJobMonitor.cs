@@ -11,7 +11,7 @@ namespace DataFactory.MCP.Services.BackgroundTasks;
 /// </summary>
 public class BackgroundJobMonitor : IBackgroundJobMonitor, IDisposable
 {
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan MaxJobAge = TimeSpan.FromHours(4);
 
     private readonly ConcurrentDictionary<string, MonitoredJob> _activeJobs = new();
