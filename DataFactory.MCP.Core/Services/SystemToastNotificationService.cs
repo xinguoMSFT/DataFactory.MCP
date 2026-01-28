@@ -7,47 +7,28 @@ using Microsoft.Extensions.Logging;
 namespace DataFactory.MCP.Services;
 
 /// <summary>
-/// Cross-platform service for showing native system notifications (toast/banner notifications).
-/// Uses platform-specific commands (PowerShell on Windows, osascript on macOS, notify-send on Linux).
+/// User notification service that shows native OS toast/banner notifications.
+/// Cross-platform: Windows (WPF), macOS (osascript), Linux (notify-send).
+/// Best for stdio mode where the server runs locally on the user's machine.
 /// </summary>
-public class SystemNotificationService : ISystemNotificationService
+public class SystemToastNotificationService : IUserNotificationService
 {
-    private readonly ILogger<SystemNotificationService> _logger;
+    private readonly ILogger<SystemToastNotificationService> _logger;
     private readonly string _xamlTemplate;
     private readonly string _psScriptTemplate;
-    private bool _isEnabled = true;
 
-    public SystemNotificationService(ILogger<SystemNotificationService> logger)
+    public SystemToastNotificationService(ILogger<SystemToastNotificationService> logger)
     {
         _logger = logger;
         _xamlTemplate = LoadEmbeddedResource("ToastNotification.xaml");
         _psScriptTemplate = LoadEmbeddedResource("ToastNotification.ps1");
     }
 
-    /// <inheritdoc />
-    public bool IsSupported => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
-                               RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
-                               RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-
-    /// <inheritdoc />
-    public bool IsEnabled
+    public Task NotifyAsync(string title, string message, NotificationLevel level = NotificationLevel.Info)
     {
-        get => _isEnabled;
-        set => _isEnabled = value;
-    }
-
-    /// <inheritdoc />
-    public Task ShowNotificationAsync(string title, string message, NotificationType notificationType = NotificationType.Information)
-    {
-        if (!IsEnabled)
-        {
-            _logger.LogDebug("System notifications are disabled, skipping notification: {Title}", title);
-            return Task.CompletedTask;
-        }
-
         try
         {
-            Show(title, message, notificationType);
+            Show(title, message, level);
             _logger.LogDebug("System notification shown: {Title}", title);
         }
         catch (Exception ex)
@@ -58,63 +39,47 @@ public class SystemNotificationService : ISystemNotificationService
         return Task.CompletedTask;
     }
 
-    /// <inheritdoc />
-    public Task ShowSuccessAsync(string title, string message)
-        => ShowNotificationAsync(title, message, NotificationType.Success);
-
-    /// <inheritdoc />
-    public Task ShowErrorAsync(string title, string message)
-        => ShowNotificationAsync(title, message, NotificationType.Error);
-
-    /// <inheritdoc />
-    public Task ShowWarningAsync(string title, string message)
-        => ShowNotificationAsync(title, message, NotificationType.Warning);
-
-    private void Show(string title, string message, NotificationType notificationType = NotificationType.Information)
+    private void Show(string title, string message, NotificationLevel level)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            // macOS Notification Center banner
             Run("osascript", $"-e \"display notification \\\"{EscapeAppleScript(message)}\\\" with title \\\"{EscapeAppleScript(title)}\\\"\"");
             return;
         }
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            // Linux libnotify (requires notify-send installed)
             Run("notify-send", $"{Quote(title)} {Quote(message)}");
             return;
         }
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            // Windows custom WPF toast notification
-            ShowWindowsToast(title, message, notificationType);
+            ShowWindowsToast(title, message, level);
             return;
         }
 
         _logger.LogDebug("No notification mechanism available for this platform");
     }
 
-    private void ShowWindowsToast(string title, string message, NotificationType notificationType)
+    private void ShowWindowsToast(string title, string message, NotificationLevel level)
     {
-        var icon = notificationType switch
+        var icon = level switch
         {
-            NotificationType.Success => "✅",
-            NotificationType.Error => "❌",
-            NotificationType.Warning => "⚠️",
+            NotificationLevel.Success => "✅",
+            NotificationLevel.Error => "❌",
+            NotificationLevel.Warning => "⚠️",
             _ => "ℹ️"
         };
 
-        var borderColor = notificationType switch
+        var borderColor = level switch
         {
-            NotificationType.Success => "#28A745",
-            NotificationType.Error => "#DC3545",
-            NotificationType.Warning => "#FFC107",
+            NotificationLevel.Success => "#28A745",
+            NotificationLevel.Error => "#DC3545",
+            NotificationLevel.Warning => "#FFC107",
             _ => "#007ACC"
         };
 
-        // Escape for XAML attributes and apply template substitutions
         var safeTitle = EscapeXml($"{icon} {title}");
         var safeMessage = EscapeXml(message);
 
@@ -127,7 +92,6 @@ public class SystemNotificationService : ISystemNotificationService
 
         try
         {
-            // Write script to temp file with UTF-8 BOM encoding for proper Unicode/emoji support in PowerShell
             var scriptPath = Path.Combine(Path.GetTempPath(), $"mcp-toast-{Guid.NewGuid():N}.ps1");
             File.WriteAllText(scriptPath, psScript, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
 
@@ -139,7 +103,6 @@ public class SystemNotificationService : ISystemNotificationService
                 CreateNoWindow = true
             });
 
-            // Clean up script file after a delay (fire and forget)
             _ = Task.Delay(10000).ContinueWith(_ =>
             {
                 try { File.Delete(scriptPath); } catch { }

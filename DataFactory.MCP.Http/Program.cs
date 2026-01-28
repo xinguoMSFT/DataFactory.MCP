@@ -1,6 +1,6 @@
-using DataFactory.MCP.Configuration;
+using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Extensions;
-using DataFactory.MCP.Tools;
+using DataFactory.MCP.Services;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -15,6 +15,9 @@ logger.LogInformation("Starting DataFactory MCP HTTP Server...");
 
 // Register all DataFactory MCP services (shared with stdio version)
 builder.Services.AddDataFactoryMcpServices();
+
+// Register user notification service - HTTP uses logging (no OS toasts on remote servers)
+builder.Services.AddSingleton<IUserNotificationService, LoggingUserNotificationService>();
 
 // Configure MCP server capabilities - declare logging support for background notifications
 builder.Services.Configure<McpServerOptions>(options =>

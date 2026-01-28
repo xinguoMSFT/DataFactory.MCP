@@ -20,19 +20,19 @@ public class BackgroundTaskManager : IBackgroundTaskManager
     private static readonly TimeSpan MaxTaskDuration = TimeSpan.FromHours(4);
 
     private readonly IMcpNotificationService _notificationService;
-    private readonly ISystemNotificationService _systemNotificationService;
+    private readonly IUserNotificationService _userNotificationService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<BackgroundTaskManager> _logger;
     private readonly ConcurrentDictionary<string, BackgroundTaskInfo> _tasks = new();
 
     public BackgroundTaskManager(
         IMcpNotificationService notificationService,
-        ISystemNotificationService systemNotificationService,
+        IUserNotificationService userNotificationService,
         IHttpClientFactory httpClientFactory,
         ILogger<BackgroundTaskManager> logger)
     {
         _notificationService = notificationService;
-        _systemNotificationService = systemNotificationService;
+        _userNotificationService = userNotificationService;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
@@ -308,15 +308,15 @@ public class BackgroundTaskManager : IBackgroundTaskManager
         // Send MCP notification (for MCP client integration)
         await _notificationService.SendNotificationAsync(session, level, LoggerName, notificationData);
 
-        // Send system notification (cross-platform toast/banner for user visibility)
-        await SendSystemNotificationAsync(context, result);
+        // Send user notification (toast for stdio, logging for HTTP)
+        await SendUserNotificationAsync(context, result);
     }
 
     /// <summary>
-    /// Sends a cross-platform system notification (toast/banner) when a background task completes.
-    /// This provides visibility even when the user is not actively looking at the MCP client.
+    /// Sends a user notification when a background task completes.
+    /// The notification mechanism depends on the registered IUserNotificationService implementation.
     /// </summary>
-    private async Task SendSystemNotificationAsync(DataflowRefreshContext context, DataflowRefreshResult result)
+    private async Task SendUserNotificationAsync(DataflowRefreshContext context, DataflowRefreshResult result)
     {
         try
         {
@@ -325,23 +325,23 @@ public class BackgroundTaskManager : IBackgroundTaskManager
             if (result.IsSuccess)
             {
                 var message = $"'{context.DisplayName}' completed successfully in {result.DurationFormatted}";
-                await _systemNotificationService.ShowSuccessAsync(title, message);
+                await _userNotificationService.NotifySuccessAsync(title, message);
             }
             else if (result.Status == "Timeout")
             {
                 var message = $"'{context.DisplayName}' timed out after {MaxTaskDuration.TotalHours} hours";
-                await _systemNotificationService.ShowWarningAsync(title, message);
+                await _userNotificationService.NotifyWarningAsync(title, message);
             }
             else
             {
                 var message = $"'{context.DisplayName}' failed: {result.FailureReason ?? "Unknown error"}";
-                await _systemNotificationService.ShowErrorAsync(title, message);
+                await _userNotificationService.NotifyErrorAsync(title, message);
             }
         }
         catch (Exception ex)
         {
-            // System notifications are best-effort, don't fail the main flow
-            _logger.LogDebug(ex, "Failed to send system notification for task completion");
+            // User notifications are best-effort, don't fail the main flow
+            _logger.LogDebug(ex, "Failed to send user notification for task completion");
         }
     }
 
