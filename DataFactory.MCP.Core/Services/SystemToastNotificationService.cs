@@ -16,6 +16,7 @@ public class SystemToastNotificationService : IUserNotificationService
         IEnumerable<IPlatformNotificationProvider> providers,
         ILogger<SystemToastNotificationService> logger)
     {
+        // Select the first supported provider for the current platform
         _provider = providers.FirstOrDefault(p => p.IsSupported);
         _logger = logger;
 
