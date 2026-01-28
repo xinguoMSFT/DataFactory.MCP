@@ -77,10 +77,13 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IPlatformNotificationProvider, WindowsToastNotificationProvider>()
             .AddSingleton<IPlatformNotificationProvider, MacOsNotificationProvider>()
             .AddSingleton<IPlatformNotificationProvider, LinuxNotificationProvider>()
-            // Background task system (SOLID: separated concerns)
+            // Background task system (SOLID: single monitor for efficiency)
             .AddSingleton<IBackgroundTaskTracker, BackgroundTaskTracker>()
+            .AddSingleton<IBackgroundJobMonitor, BackgroundJobMonitor>()
             .AddSingleton<IBackgroundJobRunner, BackgroundJobRunner>()
-            .AddSingleton<IDataflowRefreshService, DataflowRefreshService>();
+            .AddSingleton<IDataflowRefreshService, DataflowRefreshService>()
+            // Notification queue - processes notifications with spacing to prevent overlap
+            .AddSingleton<INotificationQueue, NotificationQueue>();
         // Note: IUserNotificationService must be registered by the host (stdio or HTTP)
 
         return services;

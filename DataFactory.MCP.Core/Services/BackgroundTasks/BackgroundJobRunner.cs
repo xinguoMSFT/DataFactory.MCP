@@ -5,28 +5,29 @@ using ModelContextProtocol;
 namespace DataFactory.MCP.Services.BackgroundTasks;
 
 /// <summary>
-/// Executes background jobs and sends notifications on completion.
-/// Single Responsibility: orchestration only - delegates to job for execution.
+/// Executes background jobs and registers them with the central monitor.
+/// Single Responsibility: job startup and registration only.
+/// Monitoring is delegated to IBackgroundJobMonitor for efficiency.
 /// </summary>
 public class BackgroundJobRunner : IBackgroundJobRunner
 {
-    private static readonly TimeSpan DefaultPollInterval = TimeSpan.FromSeconds(10);
-    private static readonly TimeSpan MaxJobDuration = TimeSpan.FromHours(4);
-
     private readonly IMcpSessionAccessor _sessionAccessor;
     private readonly IBackgroundTaskTracker _taskTracker;
-    private readonly IUserNotificationService _notificationService;
+    private readonly IBackgroundJobMonitor _jobMonitor;
+    private readonly INotificationQueue _notificationQueue;
     private readonly ILogger<BackgroundJobRunner> _logger;
 
     public BackgroundJobRunner(
         IMcpSessionAccessor sessionAccessor,
         IBackgroundTaskTracker taskTracker,
-        IUserNotificationService notificationService,
+        IBackgroundJobMonitor jobMonitor,
+        INotificationQueue notificationQueue,
         ILogger<BackgroundJobRunner> logger)
     {
         _sessionAccessor = sessionAccessor;
         _taskTracker = taskTracker;
-        _notificationService = notificationService;
+        _jobMonitor = jobMonitor;
+        _notificationQueue = notificationQueue;
         _logger = logger;
     }
 
@@ -47,7 +48,7 @@ public class BackgroundJobRunner : IBackgroundJobRunner
         if (startResult.IsComplete)
         {
             // Job completed immediately (or failed to start)
-            await SendNotificationAsync(job, startResult);
+            EnqueueNotification(job, startResult);
             return startResult;
         }
 
@@ -62,105 +63,50 @@ public class BackgroundJobRunner : IBackgroundJobRunner
             Context = startResult.Context
         });
 
-        // Monitor in background (fire and forget)
-        _ = MonitorJobAsync(job);
+        // Register with central monitor (single timer polls all jobs efficiently)
+        _jobMonitor.RegisterJob(job);
+
+        _logger.LogDebug("Job {JobId} registered for monitoring. Active jobs: {Count}",
+            job.JobId, _jobMonitor.ActiveJobCount);
 
         return startResult;
     }
 
-    private async Task MonitorJobAsync(IBackgroundJob job)
+    private void EnqueueNotification(IBackgroundJob job, BackgroundJobResult result)
     {
-        var startTime = DateTime.UtcNow;
+        var title = $"{job.JobType} {result.Status}";
+        var duration = result.DurationFormatted ?? "unknown duration";
 
-        _logger.LogDebug("Starting background monitoring for job {JobId}", job.JobId);
+        QueuedNotification notification;
 
-        try
+        if (result.IsSuccess)
         {
-            while (DateTime.UtcNow - startTime < MaxJobDuration)
+            notification = new QueuedNotification
             {
-                await Task.Delay(DefaultPollInterval);
-
-                var result = await job.CheckStatusAsync();
-
-                if (result.IsComplete)
-                {
-                    _taskTracker.Update(job.JobId, task =>
-                    {
-                        task.Status = result.Status;
-                        task.CompletedAt = result.CompletedAt ?? DateTime.UtcNow;
-                        task.FailureReason = result.ErrorMessage;
-                    });
-
-                    await SendNotificationAsync(job, result);
-
-                    _logger.LogInformation("Job {JobId} completed with status {Status}",
-                        job.JobId, result.Status);
-                    return;
-                }
-
-                _logger.LogDebug("Job {JobId} still in progress, status={Status}",
-                    job.JobId, result.Status);
-            }
-
-            // Timeout
-            _logger.LogWarning("Job {JobId} timed out after {Duration}", job.JobId, MaxJobDuration);
-
-            var timeoutResult = new BackgroundJobResult
-            {
-                IsComplete = true,
-                IsSuccess = false,
-                Status = "Timeout",
-                ErrorMessage = $"Job did not complete within {MaxJobDuration.TotalHours} hours",
-                StartedAt = startTime,
-                CompletedAt = DateTime.UtcNow
+                Title = title,
+                Message = $"'{job.DisplayName}' completed successfully in {duration}",
+                Level = NotificationLevel.Success
             };
-
-            await SendNotificationAsync(job, timeoutResult);
         }
-        catch (Exception ex)
+        else if (result.Status == "Timeout")
         {
-            _logger.LogError(ex, "Error monitoring job {JobId}", job.JobId);
-
-            var errorResult = new BackgroundJobResult
+            notification = new QueuedNotification
             {
-                IsComplete = true,
-                IsSuccess = false,
-                Status = "Error",
-                ErrorMessage = $"Monitoring failed: {ex.Message}",
-                StartedAt = startTime,
-                CompletedAt = DateTime.UtcNow
+                Title = title,
+                Message = $"'{job.DisplayName}' timed out",
+                Level = NotificationLevel.Warning
             };
-
-            await SendNotificationAsync(job, errorResult);
         }
-    }
-
-    private async Task SendNotificationAsync(IBackgroundJob job, BackgroundJobResult result)
-    {
-        try
+        else
         {
-            var title = $"{job.JobType} {result.Status}";
-            var duration = result.DurationFormatted ?? "unknown duration";
+            notification = new QueuedNotification
+            {
+                Title = title,
+                Message = $"'{job.DisplayName}' failed: {result.ErrorMessage ?? "Unknown error"}",
+                Level = NotificationLevel.Error
+            };
+        }
 
-            if (result.IsSuccess)
-            {
-                var message = $"'{job.DisplayName}' completed successfully in {duration}";
-                await _notificationService.NotifySuccessAsync(title, message);
-            }
-            else if (result.Status == "Timeout")
-            {
-                var message = $"'{job.DisplayName}' timed out";
-                await _notificationService.NotifyWarningAsync(title, message);
-            }
-            else
-            {
-                var message = $"'{job.DisplayName}' failed: {result.ErrorMessage ?? "Unknown error"}";
-                await _notificationService.NotifyErrorAsync(title, message);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Failed to send notification for job {JobId}", job.JobId);
-        }
+        _notificationQueue.Enqueue(notification);
     }
 }
