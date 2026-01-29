@@ -9,12 +9,93 @@ The dataflow management tools allow you to:
 - **List** all dataflows within a specific workspace
 - **Get** decoded dataflow definitions with M code and metadata
 - **Execute** M (Power Query) queries against dataflows
+- **Refresh** dataflows in the background with automatic notifications
 - **Add** connections to existing dataflows
 - **Add or update** queries in existing dataflows
 - **Validate and save** complete M section documents to dataflows
 - Navigate paginated results for large dataflow collections
 
 ## MCP Tools
+
+### refresh_dataflow_background
+
+Starts a dataflow refresh in the background and monitors it until completion. You'll receive a toast notification when the refresh completes (success, failure, or timeout). This allows you to continue working while the refresh runs.
+
+#### Usage
+```
+refresh_dataflow_background(
+  workspaceId: "12345678-1234-1234-1234-123456789012",
+  dataflowId: "87654321-4321-4321-4321-210987654321"
+)
+```
+
+#### With Optional Parameters
+```
+refresh_dataflow_background(
+  workspaceId: "12345678-1234-1234-1234-123456789012",
+  dataflowId: "87654321-4321-4321-4321-210987654321",
+  displayName: "Sales ETL Pipeline",
+  executeOption: "ApplyChangesIfNeeded"
+)
+```
+
+#### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `workspaceId` | Yes | The workspace ID containing the dataflow |
+| `dataflowId` | Yes | The dataflow ID to refresh |
+| `displayName` | No | User-friendly name for notifications (defaults to dataflow ID) |
+| `executeOption` | No | `SkipApplyChanges` (default, faster) or `ApplyChangesIfNeeded` (applies pending changes first) |
+
+#### Response Format
+```json
+{
+  "success": true,
+  "message": "Refresh started in background. You'll be notified when complete.",
+  "status": "InProgress",
+  "taskInfo": {
+    "workspaceId": "12345678-1234-1234-1234-123456789012",
+    "dataflowId": "87654321-4321-4321-4321-210987654321",
+    "jobInstanceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "displayName": "Sales ETL Pipeline",
+    "startedAt": "2026-01-28T10:30:00Z",
+    "estimatedPollInterval": "60 seconds"
+  },
+  "hint": "Continue chatting - you'll receive a notification when the refresh completes."
+}
+```
+
+#### Background Monitoring
+
+The system uses an efficient centralized monitoring approach:
+- **Single Timer**: One timer polls all active refresh jobs (every 3 seconds)
+- **Parallel Status Checks**: All jobs are checked in parallel for efficiency
+- **Notification Queue**: Completed job notifications are queued and shown with 3-second spacing
+- **Platform Notifications**:
+  - **Windows**: WPF toast notifications
+  - **macOS**: Notification Center via osascript
+  - **Linux**: Desktop notifications via notify-send
+
+#### Notification Examples
+
+**Success:**
+```
+Title: DataflowRefresh Completed
+Message: 'Sales ETL Pipeline' completed successfully in 28 seconds
+```
+
+**Failure:**
+```
+Title: DataflowRefresh Failed  
+Message: 'Sales ETL Pipeline' failed: Connection timeout
+```
+
+**Timeout:**
+```
+Title: DataflowRefresh Timeout
+Message: 'Sales ETL Pipeline' timed out
+```
 
 ### list_dataflows
 
@@ -425,3 +506,17 @@ Dataflows in Microsoft Fabric include several key properties:
 # Add a connection to a dataflow
 > add connection a0b9fa12-60f5-4f95-85ca-565d34abcea1 to dataflow 87654321-4321-4321-4321-210987654321 in workspace 12345678-1234-1234-1234-123456789012
 ```
+
+### Background Refresh Operations
+```
+# Start a single dataflow refresh
+> refresh dataflow 87654321-4321-4321-4321-210987654321 in workspace 12345678-1234-1234-1234-123456789012
+
+# Refresh multiple dataflows concurrently
+> refresh both "Sales ETL" and "Customer Analytics" dataflows in my workspace
+
+# Refresh with custom display name
+> refresh dataflow 87654321-4321-4321-4321-210987654321 with name "Daily Sales Update"
+```
+
+**Note**: Background refreshes are monitored automatically. You'll receive desktop notifications when each refresh completes, with 3-second spacing between notifications if multiple refreshes complete around the same time.
