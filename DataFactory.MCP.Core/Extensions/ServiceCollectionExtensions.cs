@@ -12,6 +12,7 @@ using DataFactory.MCP.Services.BackgroundTasks;
 using DataFactory.MCP.Services.DMTSv2;
 using DataFactory.MCP.Services.Notifications;
 using DataFactory.MCP.Tools;
+using DataFactory.MCP.Tools.Dataflow;
 
 namespace DataFactory.MCP.Extensions;
 
@@ -100,6 +101,7 @@ public static class ServiceCollectionExtensions
             .WithTools<ConnectionsTool>()
             .WithTools<WorkspacesTool>()
             .WithTools<DataflowTool>()
+            .WithTools<DataflowRefreshTool>()
             .WithTools<CapacityTool>()
             .WithTools<AzureResourceDiscoveryTool>()
             .WithTools<MDocumentTool>();
