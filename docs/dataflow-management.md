@@ -97,6 +97,72 @@ Title: DataflowRefresh Timeout
 Message: 'Sales ETL Pipeline' timed out
 ```
 
+### refresh_dataflow_status
+
+Checks the status of a dataflow refresh operation. Use this to manually poll for status if you started a refresh with `refresh_dataflow_background`. Returns the current status including whether it's complete and any error information.
+
+#### Usage
+```
+refresh_dataflow_status(
+  workspaceId: "12345678-1234-1234-1234-123456789012",
+  dataflowId: "87654321-4321-4321-4321-210987654321",
+  jobInstanceId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+)
+```
+
+#### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `workspaceId` | Yes | The workspace ID containing the dataflow |
+| `dataflowId` | Yes | The dataflow ID being refreshed |
+| `jobInstanceId` | Yes | The job instance ID from `refresh_dataflow_background` result |
+
+#### Response Format (In Progress)
+```json
+{
+  "isComplete": false,
+  "isSuccess": false,
+  "status": "InProgress",
+  "workspaceId": "12345678-1234-1234-1234-123456789012",
+  "dataflowId": "87654321-4321-4321-4321-210987654321",
+  "jobInstanceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "message": "Refresh is still in progress"
+}
+```
+
+#### Response Format (Completed)
+```json
+{
+  "isComplete": true,
+  "isSuccess": true,
+  "status": "Completed",
+  "workspaceId": "12345678-1234-1234-1234-123456789012",
+  "dataflowId": "87654321-4321-4321-4321-210987654321",
+  "jobInstanceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "endTimeUtc": "2026-01-28T10:31:28Z",
+  "duration": "88 seconds",
+  "failureReason": null,
+  "message": "Refresh completed successfully in 88 seconds"
+}
+```
+
+#### Response Format (Failed)
+```json
+{
+  "isComplete": true,
+  "isSuccess": false,
+  "status": "Failed",
+  "workspaceId": "12345678-1234-1234-1234-123456789012",
+  "dataflowId": "87654321-4321-4321-4321-210987654321",
+  "jobInstanceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "endTimeUtc": "2026-01-28T10:31:28Z",
+  "duration": "45 seconds",
+  "failureReason": "Connection timeout while connecting to data source",
+  "message": "Refresh failed after 45 seconds: Connection timeout while connecting to data source"
+}
+```
+
 ### list_dataflows
 
 Returns a list of Dataflows from the specified workspace. This API supports pagination.
