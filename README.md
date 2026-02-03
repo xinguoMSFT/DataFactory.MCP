@@ -151,6 +151,22 @@ Once installed, Claude will automatically reference these skills based on your q
 - *"How do I set the output destination programmatically?"* → loads destination guide
 - *"What's Fast Copy?"* → loads advanced features
 
+## ChatGPT Skills (Optional)
+
+Create a Custom GPT or use ChatGPT Projects with pre-built Data Factory knowledge.
+
+### Installation
+
+1. Go to [ChatGPT](https://chat.openai.com) → **Explore GPTs** → **Create**
+2. Copy instructions from [`chatgpt-skills/gpt-instructions.md`](chatgpt-skills/gpt-instructions.md)
+3. Upload knowledge files from [`chatgpt-skills/`](chatgpt-skills/):
+   - `knowledge-core.md` - M basics, Dataflow Gen2 overview
+   - `knowledge-performance.md` - Query optimization, timeouts
+   - `knowledge-destinations.md` - Output configuration
+   - `knowledge-advanced.md` - Fast Copy, Action.Sequence
+
+See [`chatgpt-skills/README.md`](chatgpt-skills/README.md) for detailed setup options.
+
 ## Documentation
 
 For complete documentation, see our **[Documentation Index](https://github.com/microsoft/DataFactory.MCP/blob/main/docs/index.md)**.
