@@ -31,10 +31,15 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="Interop.Microsoft.Office.Interop.Excel">
-        <HintPath>..\Interop.Microsoft.Office.Interop.Excel.dll</HintPath>
-        <EmbedInteropTypes>True</EmbedInteropTypes>
-      </Reference>
+        <PackageReference Include="Microsoft.Office.Interop.Excel" Version="16.0.18925.20022" GeneratePathProperty="true" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="Microsoft.Office.Interop.Excel.dll">
+            <!-- $(PkgMicrosoft_Office_Interop_Excel) gets defined by the above GeneratePathProperty -->
+            <HintPath>$(PkgMicrosoft_Office_Interop_Excel)\lib\net5.0\Microsoft.Office.Interop.Excel.dll</HintPath>
+            <EmbedInteropTypes>True</EmbedInteropTypes>
+        </Reference>
     </ItemGroup>
 
 </Project>
