@@ -30,4 +30,16 @@
         <ProjectReference Include="..\DataFactory.MCP.Core\DataFactory.MCP.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Office.Interop.Excel" Version="16.0.18925.20022" GeneratePathProperty="true" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="Microsoft.Office.Interop.Excel">
+            <!-- $(PkgMicrosoft_Office_Interop_Excel) gets defined by the above GeneratePathProperty -->
+            <HintPath>$(PkgMicrosoft_Office_Interop_Excel)\lib\net5.0\Microsoft.Office.Interop.Excel.dll</HintPath>
+            <EmbedInteropTypes>True</EmbedInteropTypes>
+        </Reference>
+    </ItemGroup>
+
 </Project>
