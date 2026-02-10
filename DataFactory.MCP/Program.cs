@@ -16,11 +16,13 @@ using var loggerFactory = LoggerFactory.Create(b =>
     b.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace));
 var logger = loggerFactory.CreateLogger("DataFactory.MCP.Startup");
 
-// Register Avalonia notification provider first (cross-platform, takes priority over platform-specific providers)
-builder.Services.AddSingleton<IPlatformNotificationProvider, AvaloniaNotificationProvider>();
-
 // Register all DataFactory MCP services (shared with HTTP version)
 builder.Services.AddDataFactoryMcpServices();
+
+// Register platform-specific notification providers (stdio host only - HTTP uses MCP protocol)
+builder.Services.AddSingleton<IPlatformNotificationProvider, WindowsToastNotificationProvider>();
+builder.Services.AddSingleton<IPlatformNotificationProvider, MacOsNotificationProvider>();
+builder.Services.AddSingleton<IPlatformNotificationProvider, LinuxNotificationProvider>();
 
 // Register user notification service - stdio uses OS toast notifications
 builder.Services.AddSingleton<IUserNotificationService, SystemToastNotificationService>();
