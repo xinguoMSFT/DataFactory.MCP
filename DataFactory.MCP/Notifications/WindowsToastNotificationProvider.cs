@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using DataFactory.MCP.Abstractions.Interfaces;
 using Microsoft.Extensions.Logging;
 
-namespace DataFactory.MCP.Services.Notifications;
+namespace DataFactory.MCP.Notifications;
 
 /// <summary>
 /// Windows notification provider using WPF toast via PowerShell.
@@ -81,7 +81,7 @@ public class WindowsToastNotificationProvider : IPlatformNotificationProvider
     private static string LoadEmbeddedResource(string fileName)
     {
         var assembly = Assembly.GetExecutingAssembly();
-        var resourceName = $"DataFactory.MCP.Core.Resources.{fileName}";
+        var resourceName = $"DataFactory.MCP.Resources.{fileName}";
 
         using var stream = assembly.GetManifestResourceStream(resourceName)
             ?? throw new InvalidOperationException($"Embedded resource '{resourceName}' not found.");

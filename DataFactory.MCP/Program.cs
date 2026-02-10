@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using DataFactory.MCP.Abstractions.Interfaces;
 using DataFactory.MCP.Extensions;
+using DataFactory.MCP.Notifications;
 using DataFactory.MCP.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -17,6 +18,11 @@ var logger = loggerFactory.CreateLogger("DataFactory.MCP.Startup");
 
 // Register all DataFactory MCP services (shared with HTTP version)
 builder.Services.AddDataFactoryMcpServices();
+
+// Register platform-specific notification providers (stdio host only - HTTP uses MCP protocol)
+builder.Services.AddSingleton<IPlatformNotificationProvider, WindowsToastNotificationProvider>();
+builder.Services.AddSingleton<IPlatformNotificationProvider, MacOsNotificationProvider>();
+builder.Services.AddSingleton<IPlatformNotificationProvider, LinuxNotificationProvider>();
 
 // Register user notification service - stdio uses OS toast notifications
 builder.Services.AddSingleton<IUserNotificationService, SystemToastNotificationService>();

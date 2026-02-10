@@ -30,4 +30,9 @@
     <ProjectReference Include="..\DataFactory.MCP.Core\DataFactory.MCP.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\ToastNotification.xaml" />
+    <EmbeddedResource Include="Resources\ToastNotification.ps1" />
+  </ItemGroup>
+
 </Project>
