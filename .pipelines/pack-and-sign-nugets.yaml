@@ -147,6 +147,11 @@ extends:
                     !**/Microsoft.Extensions.*.dll;
                     !**/Microsoft.Identity.Client.dll;
                     !**/System.*.dll;
+                    !**/Avalonia.dll;
+                    !**/Avalonia.*.dll;
+                    !**/MicroCom.Runtime.dll;
+                    !**/Tmds.DBus.Protocol.dll;
+                    !**/av_libglesv2.dll;
                   search_root: "$(Build.SourcesDirectory)\\DataFactory.MCP\\bin\\$(BuildConfiguration)\\net10.0\\publish"
 
               # Sign 3rd party dlls
@@ -158,6 +163,11 @@ extends:
                   files_to_sign: |
                     **/ModelContextProtocol.dll;
                     **/ModelContextProtocol.Core.dll;
+                    **/Avalonia.dll;
+                    **/Avalonia.*.dll;
+                    **/MicroCom.Runtime.dll;
+                    **/Tmds.DBus.Protocol.dll;
+                    **/av_libglesv2.dll;
                   search_root: "$(Build.SourcesDirectory)\\DataFactory.MCP\\bin\\$(BuildConfiguration)\\net10.0\\publish"
 
               - task: DotNetCoreCLI@2
