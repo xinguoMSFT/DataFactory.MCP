@@ -74,6 +74,10 @@ public static class ServiceCollectionExtensions
             .AddSingleton<FabricDataSourceConnectionFactory>()
             // Session accessor for background notifications
             .AddSingleton<IMcpSessionAccessor, McpSessionAccessor>()
+            // Platform notification providers (SOLID: each platform has its own provider)
+            .AddSingleton<IPlatformNotificationProvider, WindowsToastNotificationProvider>()
+            .AddSingleton<IPlatformNotificationProvider, MacOsNotificationProvider>()
+            .AddSingleton<IPlatformNotificationProvider, LinuxNotificationProvider>()
             // Background task system (consolidated: monitor handles start, track, poll, notify)
             .AddSingleton<IBackgroundJobMonitor, BackgroundJobMonitor>()
             .AddSingleton<IDataflowRefreshService, DataflowRefreshService>()
