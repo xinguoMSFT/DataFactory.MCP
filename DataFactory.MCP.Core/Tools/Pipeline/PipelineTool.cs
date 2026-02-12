@@ -28,7 +28,7 @@ public class PipelineTool
     }
 
     [McpServerTool, Description(@"Returns a list of Pipelines from the specified workspace. This API supports pagination.")]
-    public async Task<string> ListFabricPipelinesAsync(
+    public async Task<string> ListPipelinesAsync(
         [Description("The workspace ID to list pipelines from (required)")] string workspaceId,
         [Description("A token for retrieving the next page of results (optional)")] string? continuationToken = null)
     {
@@ -74,7 +74,7 @@ public class PipelineTool
     }
 
     [McpServerTool, Description(@"Creates a Pipeline in the specified workspace.")]
-    public async Task<string> CreateFabricPipelineAsync(
+    public async Task<string> CreatePipelineAsync(
         [Description("The workspace ID where the pipeline will be created (required)")] string workspaceId,
         [Description("The Pipeline display name (required)")] string displayName,
         [Description("The Pipeline description (optional, max 256 characters)")] string? description = null,
@@ -125,7 +125,7 @@ public class PipelineTool
     }
 
     [McpServerTool, Description(@"Gets the metadata of a Pipeline by ID.")]
-    public async Task<string> GetFabricPipelineAsync(
+    public async Task<string> GetPipelineAsync(
         [Description("The workspace ID containing the pipeline (required)")] string workspaceId,
         [Description("The pipeline ID to retrieve (required)")] string pipelineId)
     {
@@ -157,7 +157,7 @@ public class PipelineTool
     }
 
     [McpServerTool, Description(@"Gets the definition of a Pipeline. The definition contains the pipeline JSON configuration with base64-encoded parts.")]
-    public async Task<string> GetFabricPipelineDefinitionAsync(
+    public async Task<string> GetPipelineDefinitionAsync(
         [Description("The workspace ID containing the pipeline (required)")] string workspaceId,
         [Description("The pipeline ID to get the definition for (required)")] string pipelineId)
     {
@@ -203,7 +203,7 @@ public class PipelineTool
     }
 
     [McpServerTool, Description(@"Updates the metadata (displayName and/or description) of a Pipeline.")]
-    public async Task<string> UpdateFabricPipelineAsync(
+    public async Task<string> UpdatePipelineAsync(
         [Description("The workspace ID containing the pipeline (required)")] string workspaceId,
         [Description("The pipeline ID to update (required)")] string pipelineId,
         [Description("The new display name (optional)")] string? displayName = null,
@@ -255,7 +255,7 @@ public class PipelineTool
     }
 
     [McpServerTool, Description(@"Updates the definition of a Pipeline with the provided JSON content. The JSON will be base64-encoded and sent to the API.")]
-    public async Task<string> UpdateFabricPipelineDefinitionAsync(
+    public async Task<string> UpdatePipelineDefinitionAsync(
         [Description("The workspace ID containing the pipeline (required)")] string workspaceId,
         [Description("The pipeline ID to update (required)")] string pipelineId,
         [Description("The pipeline definition JSON content (required)")] string definitionJson)

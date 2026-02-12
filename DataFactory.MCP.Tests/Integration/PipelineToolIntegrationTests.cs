@@ -36,46 +36,46 @@ public class PipelineToolIntegrationTests : FabricToolIntegrationTestBase
 
     #endregion
 
-    #region ListFabricPipelinesAsync - Unauthenticated
+    #region ListPipelinesAsync - Unauthenticated
 
     [Fact]
-    public async Task ListFabricPipelinesAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
+    public async Task ListPipelinesAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
     {
         // Act
-        var result = await _pipelineTool.ListFabricPipelinesAsync(TestWorkspaceId);
+        var result = await _pipelineTool.ListPipelinesAsync(TestWorkspaceId);
 
         // Assert
         AssertAuthenticationError(result);
     }
 
     [Fact]
-    public async Task ListFabricPipelinesAsync_WithContinuationToken_WithoutAuthentication_ShouldReturnAuthenticationError()
+    public async Task ListPipelinesAsync_WithContinuationToken_WithoutAuthentication_ShouldReturnAuthenticationError()
     {
         // Arrange
         var testToken = "test-continuation-token";
 
         // Act
-        var result = await _pipelineTool.ListFabricPipelinesAsync(TestWorkspaceId, testToken);
+        var result = await _pipelineTool.ListPipelinesAsync(TestWorkspaceId, testToken);
 
         // Assert
         AssertAuthenticationError(result);
     }
 
     [Fact]
-    public async Task ListFabricPipelinesAsync_WithEmptyWorkspaceId_ShouldReturnValidationError()
+    public async Task ListPipelinesAsync_WithEmptyWorkspaceId_ShouldReturnValidationError()
     {
         // Act
-        var result = await _pipelineTool.ListFabricPipelinesAsync("");
+        var result = await _pipelineTool.ListPipelinesAsync("");
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result, Messages.InvalidParameterEmpty("workspaceId"));
     }
 
     [Fact]
-    public async Task ListFabricPipelinesAsync_WithNullWorkspaceId_ShouldReturnValidationError()
+    public async Task ListPipelinesAsync_WithNullWorkspaceId_ShouldReturnValidationError()
     {
         // Act
-        var result = await _pipelineTool.ListFabricPipelinesAsync(null!);
+        var result = await _pipelineTool.ListPipelinesAsync(null!);
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result, Messages.InvalidParameterEmpty("workspaceId"));
@@ -83,33 +83,33 @@ public class PipelineToolIntegrationTests : FabricToolIntegrationTestBase
 
     #endregion
 
-    #region GetFabricPipelineAsync - Unauthenticated
+    #region GetPipelineAsync - Unauthenticated
 
     [Fact]
-    public async Task GetFabricPipelineAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
+    public async Task GetPipelineAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
     {
         // Act
-        var result = await _pipelineTool.GetFabricPipelineAsync(TestWorkspaceId, InvalidPipelineId);
+        var result = await _pipelineTool.GetPipelineAsync(TestWorkspaceId, InvalidPipelineId);
 
         // Assert
         AssertAuthenticationError(result);
     }
 
     [Fact]
-    public async Task GetFabricPipelineAsync_WithEmptyWorkspaceId_ShouldReturnValidationError()
+    public async Task GetPipelineAsync_WithEmptyWorkspaceId_ShouldReturnValidationError()
     {
         // Act
-        var result = await _pipelineTool.GetFabricPipelineAsync("", InvalidPipelineId);
+        var result = await _pipelineTool.GetPipelineAsync("", InvalidPipelineId);
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result, Messages.InvalidParameterEmpty("workspaceId"));
     }
 
     [Fact]
-    public async Task GetFabricPipelineAsync_WithEmptyPipelineId_ShouldReturnValidationError()
+    public async Task GetPipelineAsync_WithEmptyPipelineId_ShouldReturnValidationError()
     {
         // Act
-        var result = await _pipelineTool.GetFabricPipelineAsync(TestWorkspaceId, "");
+        var result = await _pipelineTool.GetPipelineAsync(TestWorkspaceId, "");
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result, Messages.InvalidParameterEmpty("pipelineId"));
@@ -117,23 +117,23 @@ public class PipelineToolIntegrationTests : FabricToolIntegrationTestBase
 
     #endregion
 
-    #region CreateFabricPipelineAsync - Unauthenticated
+    #region CreatePipelineAsync - Unauthenticated
 
     [Fact]
-    public async Task CreateFabricPipelineAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
+    public async Task CreatePipelineAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
     {
         // Act
-        var result = await _pipelineTool.CreateFabricPipelineAsync(TestWorkspaceId, "test-pipeline");
+        var result = await _pipelineTool.CreatePipelineAsync(TestWorkspaceId, "test-pipeline");
 
         // Assert
         AssertAuthenticationError(result);
     }
 
     [Fact]
-    public async Task CreateFabricPipelineAsync_WithEmptyDisplayName_ShouldReturnValidationError()
+    public async Task CreatePipelineAsync_WithEmptyDisplayName_ShouldReturnValidationError()
     {
         // Act
-        var result = await _pipelineTool.CreateFabricPipelineAsync(TestWorkspaceId, "");
+        var result = await _pipelineTool.CreatePipelineAsync(TestWorkspaceId, "");
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result);
@@ -141,33 +141,33 @@ public class PipelineToolIntegrationTests : FabricToolIntegrationTestBase
 
     #endregion
 
-    #region UpdateFabricPipelineAsync - Unauthenticated
+    #region UpdatePipelineAsync - Unauthenticated
 
     [Fact]
-    public async Task UpdateFabricPipelineAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
+    public async Task UpdatePipelineAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
     {
         // Act
-        var result = await _pipelineTool.UpdateFabricPipelineAsync(TestWorkspaceId, InvalidPipelineId, displayName: "updated");
+        var result = await _pipelineTool.UpdatePipelineAsync(TestWorkspaceId, InvalidPipelineId, displayName: "updated");
 
         // Assert
         AssertAuthenticationError(result);
     }
 
     [Fact]
-    public async Task UpdateFabricPipelineAsync_WithEmptyWorkspaceId_ShouldReturnValidationError()
+    public async Task UpdatePipelineAsync_WithEmptyWorkspaceId_ShouldReturnValidationError()
     {
         // Act
-        var result = await _pipelineTool.UpdateFabricPipelineAsync("", InvalidPipelineId, displayName: "updated");
+        var result = await _pipelineTool.UpdatePipelineAsync("", InvalidPipelineId, displayName: "updated");
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result, Messages.InvalidParameterEmpty("workspaceId"));
     }
 
     [Fact]
-    public async Task UpdateFabricPipelineAsync_WithNoUpdates_ShouldReturnValidationError()
+    public async Task UpdatePipelineAsync_WithNoUpdates_ShouldReturnValidationError()
     {
         // Act - neither displayName nor description provided
-        var result = await _pipelineTool.UpdateFabricPipelineAsync(TestWorkspaceId, InvalidPipelineId);
+        var result = await _pipelineTool.UpdatePipelineAsync(TestWorkspaceId, InvalidPipelineId);
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result, "At least one of displayName or description must be provided");
@@ -175,33 +175,33 @@ public class PipelineToolIntegrationTests : FabricToolIntegrationTestBase
 
     #endregion
 
-    #region GetFabricPipelineDefinitionAsync - Unauthenticated
+    #region GetPipelineDefinitionAsync - Unauthenticated
 
     [Fact]
-    public async Task GetFabricPipelineDefinitionAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
+    public async Task GetPipelineDefinitionAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
     {
         // Act
-        var result = await _pipelineTool.GetFabricPipelineDefinitionAsync(TestWorkspaceId, InvalidPipelineId);
+        var result = await _pipelineTool.GetPipelineDefinitionAsync(TestWorkspaceId, InvalidPipelineId);
 
         // Assert
         AssertAuthenticationError(result);
     }
 
     [Fact]
-    public async Task GetFabricPipelineDefinitionAsync_WithEmptyWorkspaceId_ShouldReturnValidationError()
+    public async Task GetPipelineDefinitionAsync_WithEmptyWorkspaceId_ShouldReturnValidationError()
     {
         // Act
-        var result = await _pipelineTool.GetFabricPipelineDefinitionAsync("", InvalidPipelineId);
+        var result = await _pipelineTool.GetPipelineDefinitionAsync("", InvalidPipelineId);
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result, Messages.InvalidParameterEmpty("workspaceId"));
     }
 
     [Fact]
-    public async Task GetFabricPipelineDefinitionAsync_WithEmptyPipelineId_ShouldReturnValidationError()
+    public async Task GetPipelineDefinitionAsync_WithEmptyPipelineId_ShouldReturnValidationError()
     {
         // Act
-        var result = await _pipelineTool.GetFabricPipelineDefinitionAsync(TestWorkspaceId, "");
+        var result = await _pipelineTool.GetPipelineDefinitionAsync(TestWorkspaceId, "");
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result, Messages.InvalidParameterEmpty("pipelineId"));
@@ -209,49 +209,49 @@ public class PipelineToolIntegrationTests : FabricToolIntegrationTestBase
 
     #endregion
 
-    #region UpdateFabricPipelineDefinitionAsync - Unauthenticated
+    #region UpdatePipelineDefinitionAsync - Unauthenticated
 
     [Fact]
-    public async Task UpdateFabricPipelineDefinitionAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
+    public async Task UpdatePipelineDefinitionAsync_WithoutAuthentication_ShouldReturnAuthenticationError()
     {
         // Arrange
         var definitionJson = "{\"activities\":[]}";
 
         // Act
-        var result = await _pipelineTool.UpdateFabricPipelineDefinitionAsync(TestWorkspaceId, InvalidPipelineId, definitionJson);
+        var result = await _pipelineTool.UpdatePipelineDefinitionAsync(TestWorkspaceId, InvalidPipelineId, definitionJson);
 
         // Assert
         AssertAuthenticationError(result);
     }
 
     [Fact]
-    public async Task UpdateFabricPipelineDefinitionAsync_WithEmptyWorkspaceId_ShouldReturnValidationError()
+    public async Task UpdatePipelineDefinitionAsync_WithEmptyWorkspaceId_ShouldReturnValidationError()
     {
         // Arrange
         var definitionJson = "{\"activities\":[]}";
 
         // Act
-        var result = await _pipelineTool.UpdateFabricPipelineDefinitionAsync("", InvalidPipelineId, definitionJson);
+        var result = await _pipelineTool.UpdatePipelineDefinitionAsync("", InvalidPipelineId, definitionJson);
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result, Messages.InvalidParameterEmpty("workspaceId"));
     }
 
     [Fact]
-    public async Task UpdateFabricPipelineDefinitionAsync_WithInvalidJson_ShouldReturnValidationError()
+    public async Task UpdatePipelineDefinitionAsync_WithInvalidJson_ShouldReturnValidationError()
     {
         // Act
-        var result = await _pipelineTool.UpdateFabricPipelineDefinitionAsync(TestWorkspaceId, InvalidPipelineId, "not-valid-json{");
+        var result = await _pipelineTool.UpdatePipelineDefinitionAsync(TestWorkspaceId, InvalidPipelineId, "not-valid-json{");
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result, "Invalid JSON format");
     }
 
     [Fact]
-    public async Task UpdateFabricPipelineDefinitionAsync_WithEmptyDefinitionJson_ShouldReturnValidationError()
+    public async Task UpdatePipelineDefinitionAsync_WithEmptyDefinitionJson_ShouldReturnValidationError()
     {
         // Act
-        var result = await _pipelineTool.UpdateFabricPipelineDefinitionAsync(TestWorkspaceId, InvalidPipelineId, "");
+        var result = await _pipelineTool.UpdatePipelineDefinitionAsync(TestWorkspaceId, InvalidPipelineId, "");
 
         // Assert
         McpResponseAssertHelper.AssertValidationError(result, Messages.InvalidParameterEmpty("definitionJson"));
@@ -262,28 +262,28 @@ public class PipelineToolIntegrationTests : FabricToolIntegrationTestBase
     #region Authenticated Scenarios
 
     [SkippableFact]
-    public async Task ListFabricPipelinesAsync_WithAuthentication_ShouldReturnResultOrApiError()
+    public async Task ListPipelinesAsync_WithAuthentication_ShouldReturnResultOrApiError()
     {
         // Arrange
         var isAuthenticated = await TryAuthenticateAsync();
         Skip.IfNot(isAuthenticated, "Skipping authenticated test - no valid credentials available");
 
         // Act
-        var result = await _pipelineTool.ListFabricPipelinesAsync(TestWorkspaceId);
+        var result = await _pipelineTool.ListPipelinesAsync(TestWorkspaceId);
 
         // Assert
         AssertPipelineListResult(result);
     }
 
     [SkippableFact]
-    public async Task ListFabricPipelinesAsync_WithInvalidWorkspaceId_ShouldReturnApiError()
+    public async Task ListPipelinesAsync_WithInvalidWorkspaceId_ShouldReturnApiError()
     {
         // Arrange
         var isAuthenticated = await TryAuthenticateAsync();
         Skip.IfNot(isAuthenticated, "Skipping authenticated test - no valid credentials available");
 
         // Act
-        var result = await _pipelineTool.ListFabricPipelinesAsync(InvalidWorkspaceId);
+        var result = await _pipelineTool.ListPipelinesAsync(InvalidWorkspaceId);
 
         // Assert
         Assert.NotNull(result);
@@ -293,14 +293,14 @@ public class PipelineToolIntegrationTests : FabricToolIntegrationTestBase
     }
 
     [SkippableFact]
-    public async Task GetFabricPipelineAsync_WithAuthentication_NonExistentPipeline_ShouldReturnError()
+    public async Task GetPipelineAsync_WithAuthentication_NonExistentPipeline_ShouldReturnError()
     {
         // Arrange
         var isAuthenticated = await TryAuthenticateAsync();
         Skip.IfNot(isAuthenticated, "Skipping authenticated test - no valid credentials available");
 
         // Act
-        var result = await _pipelineTool.GetFabricPipelineAsync(TestWorkspaceId, InvalidPipelineId);
+        var result = await _pipelineTool.GetPipelineAsync(TestWorkspaceId, InvalidPipelineId);
 
         // Assert
         Assert.NotNull(result);
