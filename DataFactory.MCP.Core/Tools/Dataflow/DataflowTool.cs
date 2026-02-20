@@ -517,26 +517,31 @@ public class DataflowTool
         }
     }
 
+    private static readonly JsonSerializerOptions _patchDeserializationOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private static MetadataPatch? ParseMetadataPatch(object metadataPatch)
     {
         if (metadataPatch is System.Text.Json.JsonElement jsonElement)
         {
             if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.Object)
             {
-                return jsonElement.Deserialize<MetadataPatch>();
+                return jsonElement.Deserialize<MetadataPatch>(_patchDeserializationOptions);
             }
             else if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.String)
             {
                 var value = jsonElement.GetString();
                 if (!string.IsNullOrWhiteSpace(value))
                 {
-                    return System.Text.Json.JsonSerializer.Deserialize<MetadataPatch>(value);
+                    return System.Text.Json.JsonSerializer.Deserialize<MetadataPatch>(value, _patchDeserializationOptions);
                 }
             }
         }
         else if (metadataPatch is string jsonString && !string.IsNullOrWhiteSpace(jsonString))
         {
-            return System.Text.Json.JsonSerializer.Deserialize<MetadataPatch>(jsonString);
+            return System.Text.Json.JsonSerializer.Deserialize<MetadataPatch>(jsonString, _patchDeserializationOptions);
         }
 
         return null;
